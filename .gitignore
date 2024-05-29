@@ -1,0 +1,14 @@
+*.db
+*.egg
+*.egg-info
+*.env
+*.lock
+*.py[oc]
+.coverage
+.hatch/
+.mypy_cache/
+.venv/
+db/
+dist/
+node_modules/
+venv/
