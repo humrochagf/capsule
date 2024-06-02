@@ -91,6 +91,18 @@ exclude = """
   | venv
 """
 
+[tool.isort]
+profile = "black"
+skip = [
+  ".env",
+  ".hatch",
+  ".mypy_cache",
+  ".venv",
+  "__pycache__",
+  "env",
+  "venv",
+]
+
 [tool.ruff]
 exclude = [
   ".env",
@@ -141,6 +153,8 @@ ignore = [
   "S105", "S106", "S107",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Relative imports
+  "TID252",
 ]
 unfixable = [
   # Don't touch unused imports
