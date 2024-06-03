@@ -2,6 +2,19 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 
+def test_nodeinfo(client: TestClient) -> None:
+    response = client.get("/ap/.well-known/nodeinfo")
+
+    assert response.json() == {
+        "links": [
+            {
+                "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
+                "href": "http://example.com/nodeinfo/2.0/",
+            }
+        ],
+    }
+
+
 def test_inbox(client: TestClient) -> None:
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",

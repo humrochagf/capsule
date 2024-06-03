@@ -1,6 +1,6 @@
 from wheke import Pod
 
-from .routes import router
+from capsule.activitypub.routes import router
 
 activitypub_pod = Pod(
     "activitypub",
