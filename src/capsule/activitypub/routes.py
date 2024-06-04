@@ -11,7 +11,7 @@ async def nodeinfo() -> dict:
         "links": [
             {
                 "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
-                "href": f"{settings.base_domain}nodeinfo/2.0/",
+                "href": f"{settings.hostname}nodeinfo/2.0/",
             }
         ],
     }
