@@ -6,7 +6,7 @@ router = APIRouter(prefix="/ap", tags=["activitypub"])
 
 
 @router.get("/.well-known/nodeinfo")
-async def nodeinfo() -> dict:
+async def well_known_nodeinfo() -> dict:
     return {
         "links": [
             {
