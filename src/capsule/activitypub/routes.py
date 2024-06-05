@@ -2,7 +2,7 @@ from fastapi import APIRouter, status
 
 from capsule.settings import settings
 
-router = APIRouter(prefix="/ap", tags=["activitypub"])
+router = APIRouter(tags=["activitypub"])
 
 
 @router.get("/.well-known/nodeinfo")

@@ -1,5 +1,28 @@
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from pydantic_core import Url
+
+from capsule.settings import Settings
+
+
+@pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
+def test_well_known_nodeinfo(
+    client: TestClient, capsule_settings: Settings, hostname: str
+) -> None:
+    capsule_settings.hostname = Url(hostname)
+
+    response = client.get("/.well-known/nodeinfo")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "links": [
+            {
+                "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
+                "href": f"{hostname}/nodeinfo/2.0/",
+            }
+        ],
+    }
 
 
 def test_inbox(client: TestClient) -> None:
@@ -17,6 +40,6 @@ def test_inbox(client: TestClient) -> None:
         "liked": "https://social.example/alyssa/liked/",
     }
 
-    response = client.post("/ap/inbox", data=payload)
+    response = client.post("/inbox", data=payload)
 
     assert response.status_code == status.HTTP_202_ACCEPTED
