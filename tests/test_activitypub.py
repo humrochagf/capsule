@@ -20,14 +20,14 @@ def test_well_known_nodeinfo(
         "links": [
             {
                 "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
-                "href": f"{hostname}/nodeinfo/2.0/",
+                "href": f"{hostname}/nodeinfo/2.0",
             }
         ],
     }
 
 
 def test_nodeinfo(client: TestClient) -> None:
-    response = client.get("/nodeinfo")
+    response = client.get("/nodeinfo/2.0")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {

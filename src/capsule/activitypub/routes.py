@@ -12,13 +12,13 @@ async def well_known_nodeinfo() -> dict:
         "links": [
             {
                 "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
-                "href": f"{settings.hostname}nodeinfo/2.0/",
+                "href": f"{settings.hostname}nodeinfo/2.0",
             }
         ],
     }
 
 
-@router.get("/nodeinfo")
+@router.get("/nodeinfo/2.0")
 async def nodeinfo() -> dict:
     return {
         "version": "2.0",
