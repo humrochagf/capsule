@@ -3,6 +3,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from pydantic_core import Url
 
+from capsule.__about__ import __version__
 from capsule.settings import Settings
 
 
@@ -29,6 +30,26 @@ def test_nodeinfo(client: TestClient) -> None:
     response = client.get("/nodeinfo")
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "version": "2.0",
+        "software": {
+            "name": "capsule",
+            "version": __version__,
+        },
+        "protocols": ["activitypub"],
+        "services": {
+            "outbound": [],
+            "inbound": [],
+        },
+        "usage": {
+            "users": {
+                "total": 0,
+            },
+            "localPosts": 0,
+        },
+        "openRegistrations": False,
+        "metadata": {},
+    }
 
 
 def test_inbox(client: TestClient) -> None:

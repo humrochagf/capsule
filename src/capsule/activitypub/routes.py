@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 
+from capsule.__about__ import __version__
 from capsule.settings import settings
 
 router = APIRouter(tags=["activitypub"])
@@ -19,7 +20,26 @@ async def well_known_nodeinfo() -> dict:
 
 @router.get("/nodeinfo")
 async def nodeinfo() -> dict:
-    return {}
+    return {
+        "version": "2.0",
+        "software": {
+            "name": "capsule",
+            "version": __version__,
+        },
+        "protocols": ["activitypub"],
+        "services": {
+            "outbound": [],
+            "inbound": [],
+        },
+        "usage": {
+            "users": {
+                "total": 0,
+            },
+            "localPosts": 0,
+        },
+        "openRegistrations": False,
+        "metadata": {},
+    }
 
 
 @router.post("/inbox", status_code=status.HTTP_202_ACCEPTED)
