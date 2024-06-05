@@ -25,6 +25,12 @@ def test_well_known_nodeinfo(
     }
 
 
+def test_nodeinfo(client: TestClient) -> None:
+    response = client.get("/nodeinfo")
+
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_inbox(client: TestClient) -> None:
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",

@@ -17,6 +17,11 @@ async def well_known_nodeinfo() -> dict:
     }
 
 
+@router.get("/nodeinfo")
+async def nodeinfo() -> dict:
+    return {}
+
+
 @router.post("/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def inbox() -> None:
     pass
