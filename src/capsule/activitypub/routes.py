@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
 from capsule.__about__ import __version__
-from capsule.settings import settings
+from capsule.settings import get_capsule_settings
 
 router = APIRouter(tags=["activitypub"])
 
@@ -12,7 +12,7 @@ async def well_known_nodeinfo() -> dict:
         "links": [
             {
                 "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
-                "href": f"{settings.hostname}nodeinfo/2.0",
+                "href": f"{get_capsule_settings().hostname}nodeinfo/2.0",
             }
         ],
     }
@@ -23,7 +23,7 @@ async def nodeinfo() -> dict:
     return {
         "version": "2.0",
         "software": {
-            "name": "capsule",
+            "name": get_capsule_settings().project_name.lower(),
             "version": __version__,
         },
         "protocols": ["activitypub"],

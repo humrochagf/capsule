@@ -4,12 +4,12 @@ from fastapi.testclient import TestClient
 from pydantic_core import Url
 
 from capsule.__about__ import __version__
-from capsule.settings import Settings
+from capsule.settings import CapsuleSettings
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
 def test_well_known_nodeinfo(
-    client: TestClient, capsule_settings: Settings, hostname: str
+    client: TestClient, capsule_settings: CapsuleSettings, hostname: str
 ) -> None:
     capsule_settings.hostname = Url(hostname)
 

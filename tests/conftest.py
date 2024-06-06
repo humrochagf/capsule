@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from capsule import app
-from capsule.settings import Settings, settings
+from capsule.settings import CapsuleSettings, get_capsule_settings
 
 
 @pytest.fixture
@@ -13,7 +13,8 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def capsule_settings() -> Generator[Settings, None, None]:
+def capsule_settings() -> Generator[CapsuleSettings, None, None]:
+    settings = get_capsule_settings()
     data = settings.model_dump()
 
     yield settings
