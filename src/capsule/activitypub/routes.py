@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
+from starlette.status import HTTP_400_BAD_REQUEST
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
@@ -32,6 +33,16 @@ async def well_known_nodeinfo() -> dict:
             }
         ],
     }
+
+
+@router.get("/.well-known/webfinger")
+async def well_known_webfinger(resource: str = "") -> dict:
+    settings = get_capsule_settings()
+
+    if resource == f"acct:{settings.username}@{settings.hostname}":
+        return {}
+
+    raise HTTPException(HTTP_400_BAD_REQUEST)
 
 
 @router.get("/nodeinfo/2.0")

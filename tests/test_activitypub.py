@@ -20,12 +20,15 @@ def test_well_known_host_meta(
 
     template = f"{hostname}/.well-known/webfinger?resource={{uri}}"
 
-    assert response.content == (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">\n'
-        f'  <Link rel="lrdd" template="{template}"/>\n'
-        "</XRD>"
-    ).encode()
+    assert (
+        response.content
+        == (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">\n'
+            f'  <Link rel="lrdd" template="{template}"/>\n'
+            "</XRD>"
+        ).encode()
+    )
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -45,6 +48,22 @@ def test_well_known_nodeinfo(
             }
         ],
     }
+
+
+def test_well_known_webfinger(
+    client: TestClient, capsule_settings: CapsuleSettings
+) -> None:
+    acct = f"acct:{capsule_settings.username}@{capsule_settings.hostname}"
+    response = client.get(f"/.well-known/webfinger?resource={acct}")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {}
+
+
+def test_well_known_webfinger_bad_resource(client: TestClient) -> None:
+    response = client.get("/.well-known/webfinger")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 def test_nodeinfo(client: TestClient) -> None:
