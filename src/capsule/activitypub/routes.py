@@ -1,9 +1,25 @@
-from fastapi import APIRouter, status
+from pathlib import Path
+
+from fastapi import APIRouter, Request, Response, status
+from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
 from capsule.settings import get_capsule_settings
 
 router = APIRouter(tags=["activitypub"])
+templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
+
+
+@router.get("/.well-known/host-meta")
+async def well_known_host_meta(request: Request) -> Response:
+    return templates.TemplateResponse(
+        name="host-meta.xml",
+        media_type="application/xrd+xml",
+        request=request,
+        context={
+            "hostname": get_capsule_settings().hostname,
+        },
+    )
 
 
 @router.get("/.well-known/nodeinfo")
