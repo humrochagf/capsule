@@ -60,7 +60,7 @@ async def nodeinfo() -> dict:
         },
         "usage": {
             "users": {
-                "total": 0,
+                "total": 1,
             },
             "localPosts": 0,
         },

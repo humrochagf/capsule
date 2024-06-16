@@ -83,7 +83,7 @@ def test_nodeinfo(client: TestClient) -> None:
         },
         "usage": {
             "users": {
-                "total": 0,
+                "total": 1,
             },
             "localPosts": 0,
         },
