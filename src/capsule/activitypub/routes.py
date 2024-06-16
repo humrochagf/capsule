@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
@@ -38,11 +38,15 @@ async def well_known_nodeinfo() -> dict:
 @router.get("/.well-known/webfinger")
 async def well_known_webfinger(resource: str = "") -> dict:
     settings = get_capsule_settings()
+    acct = resource.removeprefix("acct:").split("@")
 
-    if resource == f"acct:{settings.username}@{settings.hostname}":
-        return {}
-
-    raise HTTPException(HTTP_400_BAD_REQUEST)
+    match acct:
+        case [settings.username, settings.hostname.host]:
+            return {}
+        case [_, _]:
+            raise HTTPException(HTTP_404_NOT_FOUND)
+        case _:
+            raise HTTPException(HTTP_400_BAD_REQUEST)
 
 
 @router.get("/nodeinfo/2.0")

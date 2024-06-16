@@ -53,11 +53,23 @@ def test_well_known_nodeinfo(
 def test_well_known_webfinger(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
-    acct = f"acct:{capsule_settings.username}@{capsule_settings.hostname}"
+    capsule_settings.username = "test"
+    capsule_settings.hostname = Url("https://example.com")
+
+    acct = "acct:test@example.com"
     response = client.get(f"/.well-known/webfinger?resource={acct}")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {}
+
+
+def test_well_known_webfinger_not_found(
+    client: TestClient, capsule_settings: CapsuleSettings
+) -> None:
+    acct = f"acct:notfound@{capsule_settings.hostname.host}"
+    response = client.get(f"/.well-known/webfinger?resource={acct}")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_well_known_webfinger_bad_resource(client: TestClient) -> None:
