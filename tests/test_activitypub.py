@@ -60,7 +60,22 @@ def test_well_known_webfinger(
     response = client.get(f"/.well-known/webfinger?resource={acct}")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {}
+    assert response.json() == {
+        "subject": "acct:test@example.com",
+        "aliases": ["https://example.com/@test", "https://example.com/users/test"],
+        "links": [
+            {
+                "rel": "http://webfinger.net/rel/profile-page",
+                "type": "text/html",
+                "href": "https://example.com/@test",
+            },
+            {
+                "rel": "self",
+                "type": "application/activity+json",
+                "href": "https://example.com/users/test",
+            },
+        ],
+    }
 
 
 def test_well_known_webfinger_not_found(

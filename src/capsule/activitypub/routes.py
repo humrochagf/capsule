@@ -42,7 +42,25 @@ async def well_known_webfinger(resource: str = "") -> dict:
 
     match acct:
         case [settings.username, settings.hostname.host]:
-            return {}
+            return {
+                "subject": f"acct:{settings.username}@{settings.hostname.host}",
+                "aliases": [
+                    f"{settings.hostname}@{settings.username}",
+                    f"{settings.hostname}users/{settings.username}",
+                ],
+                "links": [
+                    {
+                        "rel": "http://webfinger.net/rel/profile-page",
+                        "type": "text/html",
+                        "href": f"{settings.hostname}@{settings.username}",
+                    },
+                    {
+                        "rel": "self",
+                        "type": "application/activity+json",
+                        "href": f"{settings.hostname}users/{settings.username}",
+                    },
+                ],
+            }
         case [_, _]:
             raise HTTPException(HTTP_404_NOT_FOUND)
         case _:
