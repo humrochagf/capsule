@@ -46,7 +46,7 @@ async def well_known_webfinger(resource: str = "") -> dict:
                 "subject": f"acct:{settings.username}@{settings.hostname.host}",
                 "aliases": [
                     f"{settings.hostname}@{settings.username}",
-                    f"{settings.hostname}users/{settings.username}",
+                    f"{settings.hostname}actors/{settings.username}",
                 ],
                 "links": [
                     {
@@ -57,7 +57,7 @@ async def well_known_webfinger(resource: str = "") -> dict:
                     {
                         "rel": "self",
                         "type": "application/activity+json",
-                        "href": f"{settings.hostname}users/{settings.username}",
+                        "href": f"{settings.hostname}actors/{settings.username}",
                     },
                 ],
             }
@@ -91,6 +91,31 @@ async def nodeinfo() -> dict:
     }
 
 
-@router.post("/inbox", status_code=status.HTTP_202_ACCEPTED)
-async def inbox() -> None:
-    pass
+@router.get("/@{username}")
+@router.get("/actors/{username}")
+async def actor(username: str) -> dict:
+    settings = get_capsule_settings()
+
+    if username != settings.username:
+        raise HTTPException(HTTP_404_NOT_FOUND)
+
+    return {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "id": f"{settings.hostname}actors/{settings.username}",
+        "type": "Person",
+        "name": f"{settings.name}",
+        "preferredUsername": f"{settings.username}",
+        "summary": f"{settings.summary}",
+        "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
+        "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
+        "followers": f"{settings.hostname}actors/{settings.username}/followers",
+        "following": f"{settings.hostname}actors/{settings.username}/following",
+    }
+
+
+@router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
+async def actor_inbox(username: str) -> None:
+    settings = get_capsule_settings()
+
+    if username != settings.username:
+        raise HTTPException(HTTP_404_NOT_FOUND)

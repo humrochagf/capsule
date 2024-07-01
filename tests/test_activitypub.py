@@ -53,26 +53,29 @@ def test_well_known_nodeinfo(
 def test_well_known_webfinger(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
-    capsule_settings.username = "test"
+    capsule_settings.username = "testuser"
     capsule_settings.hostname = Url("https://example.com")
 
-    acct = "acct:test@example.com"
+    acct = "acct:testuser@example.com"
     response = client.get(f"/.well-known/webfinger?resource={acct}")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "subject": "acct:test@example.com",
-        "aliases": ["https://example.com/@test", "https://example.com/users/test"],
+        "subject": "acct:testuser@example.com",
+        "aliases": [
+            "https://example.com/@testuser",
+            "https://example.com/actors/testuser",
+        ],
         "links": [
             {
                 "rel": "http://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": "https://example.com/@test",
+                "href": "https://example.com/@testuser",
             },
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": "https://example.com/users/test",
+                "href": "https://example.com/actors/testuser",
             },
         ],
     }
@@ -119,21 +122,80 @@ def test_nodeinfo(client: TestClient) -> None:
     }
 
 
-def test_inbox(client: TestClient) -> None:
-    payload = {
+@pytest.mark.parametrize("url", ["/actors/testuser", "@testuser"])
+@pytest.mark.parametrize(
+    "accept", ["application/ld", "application/json", "application/activity+json"]
+)
+def test_user_actor(
+    client: TestClient, capsule_settings: CapsuleSettings, url: str, accept: str
+) -> None:
+    capsule_settings.username = "testuser"
+    capsule_settings.hostname = Url("https://example.com")
+    capsule_settings.name = "Test Name"
+    capsule_settings.summary = "Test Summary"
+
+    response = client.get(url, headers={"Accept": accept})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
         "@context": "https://www.w3.org/ns/activitystreams",
+        "id": "https://example.com/actors/testuser",
         "type": "Person",
-        "id": "https://social.example/alyssa/",
-        "name": "Alyssa P. Hacker",
-        "preferredUsername": "alyssa",
-        "summary": "Lisp enthusiast hailing from MIT",
-        "inbox": "https://social.example/alyssa/inbox/",
-        "outbox": "https://social.example/alyssa/outbox/",
-        "followers": "https://social.example/alyssa/followers/",
-        "following": "https://social.example/alyssa/following/",
-        "liked": "https://social.example/alyssa/liked/",
+        "name": "Test Name",
+        "preferredUsername": "testuser",
+        "summary": "Test Summary",
+        "inbox": "https://example.com/actors/testuser/inbox",
+        "outbox": "https://example.com/actors/testuser/outbox",
+        "followers": "https://example.com/actors/testuser/followers",
+        "following": "https://example.com/actors/testuser/following",
     }
 
-    response = client.post("/inbox", data=payload)
+
+def test_user_actor_not_found(client: TestClient) -> None:
+    response = client.get("/actors/notfound")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_user_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
+    capsule_settings.username = "testuser"
+
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "to": ["https://example.com/actors/testuser"],
+        "actor": "https://social.example/alyssa/",
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
+            "attributedTo": "https://social.example/alyssa/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Say, did you finish reading that book I lent you?",
+        },
+    }
+
+    response = client.post("/actors/testuser/inbox", data=payload)
 
     assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+def test_user_inbox_not_found(client: TestClient) -> None:
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "to": ["https://example.com/actors/testuser"],
+        "actor": "https://social.example/alyssa/",
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
+            "attributedTo": "https://social.example/alyssa/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Say, did you finish reading that book I lent you?",
+        },
+    }
+
+    response = client.post("/actors/notfound/inbox", data=payload)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
