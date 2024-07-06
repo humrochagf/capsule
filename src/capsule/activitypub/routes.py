@@ -119,3 +119,18 @@ async def actor_inbox(username: str) -> None:
 
     if username != settings.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
+
+
+@router.get("/actors/{username}/outbox")
+async def actor_outbox(username: str) -> dict:
+    settings = get_capsule_settings()
+
+    if username != settings.username:
+        raise HTTPException(HTTP_404_NOT_FOUND)
+
+    return {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "OrderedCollection",
+        "totalItems": 0,
+        "orderedItems": [],
+    }
