@@ -10,6 +10,8 @@ class CapsuleSettings(WhekeSettings):
     username: str = ""
     name: str = ""
     summary: str = ""
+    public_key: str = ""
+    private_key: str = ""
 
     model_config = SettingsConfigDict(
         env_prefix="capsule_", env_file=".env", env_file_encoding="utf-8"

@@ -133,12 +133,16 @@ def test_actor(
     capsule_settings.hostname = Url("https://example.com")
     capsule_settings.name = "Test Name"
     capsule_settings.summary = "Test Summary"
+    capsule_settings.public_key = "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
 
     response = client.get(url, headers={"Accept": accept})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "@context": "https://www.w3.org/ns/activitystreams",
+        "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1",
+        ],
         "id": "https://example.com/actors/testuser",
         "type": "Person",
         "name": "Test Name",
@@ -146,6 +150,11 @@ def test_actor(
         "summary": "Test Summary",
         "inbox": "https://example.com/actors/testuser/inbox",
         "outbox": "https://example.com/actors/testuser/outbox",
+        "publicKey": {
+            "id": "https://example.com/actors/testuser#main-key",
+            "owner": "https://example.com/actors/testuser",
+            "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
+        }
     }
 
 

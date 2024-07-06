@@ -100,7 +100,10 @@ async def actor(username: str) -> dict:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     return {
-        "@context": "https://www.w3.org/ns/activitystreams",
+        "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1",
+        ],
         "id": f"{settings.hostname}actors/{settings.username}",
         "type": "Person",
         "name": f"{settings.name}",
@@ -108,6 +111,11 @@ async def actor(username: str) -> dict:
         "summary": f"{settings.summary}",
         "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
         "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
+        "publicKey": {
+            "id": f"{settings.hostname}actors/{settings.username}#main-key",
+            "owner": f"{settings.hostname}actors/{settings.username}",
+            "publicKeyPem": f"{settings.public_key}"
+        }
     }
 
 
