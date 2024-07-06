@@ -108,8 +108,6 @@ async def actor(username: str) -> dict:
         "summary": f"{settings.summary}",
         "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
         "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
-        "followers": f"{settings.hostname}actors/{settings.username}/followers",
-        "following": f"{settings.hostname}actors/{settings.username}/following",
     }
 
 

@@ -146,8 +146,6 @@ def test_actor(
         "summary": "Test Summary",
         "inbox": "https://example.com/actors/testuser/inbox",
         "outbox": "https://example.com/actors/testuser/outbox",
-        "followers": "https://example.com/actors/testuser/followers",
-        "following": "https://example.com/actors/testuser/following",
     }
 
 
