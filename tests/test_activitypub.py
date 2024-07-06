@@ -126,7 +126,7 @@ def test_nodeinfo(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "accept", ["application/ld", "application/json", "application/activity+json"]
 )
-def test_user_actor(
+def test_actor(
     client: TestClient, capsule_settings: CapsuleSettings, url: str, accept: str
 ) -> None:
     capsule_settings.username = "testuser"
@@ -151,13 +151,13 @@ def test_user_actor(
     }
 
 
-def test_user_actor_not_found(client: TestClient) -> None:
+def test_actor_not_found(client: TestClient) -> None:
     response = client.get("/actors/notfound")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_user_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
+def test_actor_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
     capsule_settings.username = "testuser"
 
     payload = {
@@ -180,7 +180,7 @@ def test_user_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> No
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
-def test_user_inbox_not_found(client: TestClient) -> None:
+def test_actor_inbox_not_found(client: TestClient) -> None:
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "Create",
