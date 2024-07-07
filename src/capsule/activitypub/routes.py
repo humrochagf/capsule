@@ -129,7 +129,7 @@ async def actor_inbox(username: str, request: Request) -> None:
     if username != settings.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    logger.debug(request.body)
+    logger.debug(await request.body())
 
 
 @router.get("/actors/{username}/outbox")
