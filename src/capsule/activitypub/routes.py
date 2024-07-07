@@ -1,11 +1,14 @@
 import logging
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
+from capsule.activitypub.models import Actor
+from capsule.activitypub.service import ActivityPubService, get_activitypub_service
 from capsule.settings import get_capsule_settings
 
 logger = logging.getLogger(__name__)
@@ -96,47 +99,40 @@ async def nodeinfo() -> dict:
 
 @router.get("/@{username}")
 @router.get("/actors/{username}")
-async def actor(username: str) -> dict:
-    settings = get_capsule_settings()
+async def actor(
+    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
+    username: str,
+) -> Actor:
+    main_actor = service.get_main_actor()
 
-    if username != settings.username:
+    if username != main_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    return {
-        "@context": [
-            "https://www.w3.org/ns/activitystreams",
-            "https://w3id.org/security/v1",
-        ],
-        "id": f"{settings.hostname}actors/{settings.username}",
-        "type": "Person",
-        "name": f"{settings.name}",
-        "preferredUsername": f"{settings.username}",
-        "summary": f"{settings.summary}",
-        "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
-        "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
-        "publicKey": {
-            "id": f"{settings.hostname}actors/{settings.username}#main-key",
-            "owner": f"{settings.hostname}actors/{settings.username}",
-            "publicKeyPem": f"{settings.public_key}",
-        },
-    }
+    return main_actor
 
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
-async def actor_inbox(username: str, request: Request) -> None:
-    settings = get_capsule_settings()
+async def actor_inbox(
+    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
+    username: str,
+    request: Request,
+) -> None:
+    main_actor = service.get_main_actor()
 
-    if username != settings.username:
+    if username != main_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     logger.debug(await request.body())
 
 
 @router.get("/actors/{username}/outbox")
-async def actor_outbox(username: str) -> dict:
-    settings = get_capsule_settings()
+async def actor_outbox(
+    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
+    username: str,
+) -> dict:
+    main_actor = service.get_main_actor()
 
-    if username != settings.username:
+    if username != main_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     return {
