@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
@@ -6,6 +7,8 @@ from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
 from capsule.settings import get_capsule_settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["activitypub"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -114,17 +117,19 @@ async def actor(username: str) -> dict:
         "publicKey": {
             "id": f"{settings.hostname}actors/{settings.username}#main-key",
             "owner": f"{settings.hostname}actors/{settings.username}",
-            "publicKeyPem": f"{settings.public_key}"
-        }
+            "publicKeyPem": f"{settings.public_key}",
+        },
     }
 
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
-async def actor_inbox(username: str) -> None:
+async def actor_inbox(username: str, request: Request) -> None:
     settings = get_capsule_settings()
 
     if username != settings.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
+
+    logger.debug(request.body)
 
 
 @router.get("/actors/{username}/outbox")

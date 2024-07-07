@@ -133,7 +133,9 @@ def test_actor(
     capsule_settings.hostname = Url("https://example.com")
     capsule_settings.name = "Test Name"
     capsule_settings.summary = "Test Summary"
-    capsule_settings.public_key = "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
+    capsule_settings.public_key = (
+        "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
+    )
 
     response = client.get(url, headers={"Accept": accept})
 
@@ -153,8 +155,8 @@ def test_actor(
         "publicKey": {
             "id": "https://example.com/actors/testuser#main-key",
             "owner": "https://example.com/actors/testuser",
-            "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
-        }
+            "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
+        },
     }
 
 
