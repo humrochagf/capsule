@@ -13,6 +13,12 @@ class ActivityPubService:
     def get_main_actor(self) -> Actor:
         return self.actor_repository.get_main_actor()
 
+    def get_instance_post_count(self) -> int:
+        return 0
+
+    def get_instance_actor_count(self) -> int:
+        return 1
+
 
 def activitypub_service_factory() -> ActivityPubService:
     return ActivityPubService()

@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["activitypub"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 
+ActivityPubServiceInjection = Annotated[
+    ActivityPubService, Depends(get_activitypub_service)
+]
+
 
 @router.get("/.well-known/host-meta")
 async def well_known_host_meta(request: Request) -> Response:
@@ -74,7 +78,7 @@ async def well_known_webfinger(resource: str = "") -> dict:
 
 
 @router.get("/nodeinfo/2.0")
-async def nodeinfo() -> dict:
+async def nodeinfo(service: ActivityPubServiceInjection) -> dict:
     return {
         "version": "2.0",
         "software": {
@@ -88,9 +92,9 @@ async def nodeinfo() -> dict:
         },
         "usage": {
             "users": {
-                "total": 1,
+                "total": service.get_instance_actor_count(),
             },
-            "localPosts": 0,
+            "localPosts": service.get_instance_post_count(),
         },
         "openRegistrations": False,
         "metadata": {},
@@ -99,10 +103,7 @@ async def nodeinfo() -> dict:
 
 @router.get("/@{username}")
 @router.get("/actors/{username}")
-async def actor(
-    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
-    username: str,
-) -> Actor:
+async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
     main_actor = service.get_main_actor()
 
     if username != main_actor.username:
@@ -113,9 +114,7 @@ async def actor(
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def actor_inbox(
-    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
-    username: str,
-    request: Request,
+    service: ActivityPubServiceInjection, username: str, request: Request
 ) -> None:
     main_actor = service.get_main_actor()
 
@@ -126,10 +125,7 @@ async def actor_inbox(
 
 
 @router.get("/actors/{username}/outbox")
-async def actor_outbox(
-    service: Annotated[ActivityPubService, Depends(get_activitypub_service)],
-    username: str,
-) -> dict:
+async def actor_outbox(service: ActivityPubServiceInjection, username: str) -> dict:
     main_actor = service.get_main_actor()
 
     if username != main_actor.username:
