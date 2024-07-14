@@ -184,7 +184,7 @@ def test_actor_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> N
         },
     }
 
-    response = client.post("/actors/testuser/inbox", data=payload)
+    response = client.post("/actors/testuser/inbox", json=payload)
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
@@ -205,7 +205,7 @@ def test_actor_inbox_not_found(client: TestClient) -> None:
         },
     }
 
-    response = client.post("/actors/notfound/inbox", data=payload)
+    response = client.post("/actors/notfound/inbox", json=payload)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 

@@ -19,8 +19,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12']
+
+    services:
+      mongodb:
+        image: mongodb/mongodb-community-server:latest
+        ports:
+          - 27017:27017
 
     steps:
     - uses: actions/checkout@v4

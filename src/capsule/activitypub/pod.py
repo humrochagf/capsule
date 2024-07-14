@@ -1,7 +1,7 @@
 from wheke import Pod, ServiceConfig
 
-from capsule.activitypub.routes import router
-from capsule.activitypub.service import ActivityPubService, activitypub_service_factory
+from .routes import router
+from .service import ActivityPubService, activitypub_service_factory
 
 activitypub_pod = Pod(
     "activitypub",

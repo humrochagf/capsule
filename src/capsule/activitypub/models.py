@@ -54,3 +54,9 @@ class Actor(BaseModel):
         }
 
         return Actor(**data)
+
+
+class InboxEntry(BaseModel):
+    id: HttpUrl
+
+    model_config = ConfigDict(extra="allow")

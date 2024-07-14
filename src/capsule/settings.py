@@ -1,5 +1,5 @@
-from pydantic import HttpUrl
-from pydantic_core import Url
+from pydantic import HttpUrl, MongoDsn
+from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import SettingsConfigDict
 from wheke import WhekeSettings, get_settings
 
@@ -7,6 +7,10 @@ from wheke import WhekeSettings, get_settings
 class CapsuleSettings(WhekeSettings):
     project_name: str = "Capsule"
     hostname: HttpUrl = Url("http://localhost:8000")
+
+    connection_string: MongoDsn = MultiHostUrl("mongodb://localhost:27017")
+    database_name: str = "capsule"
+
     username: str = ""
     name: str = ""
     summary: str = ""
