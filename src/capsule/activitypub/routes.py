@@ -9,7 +9,7 @@ from starlette.templating import Jinja2Templates
 from capsule.__about__ import __version__
 from capsule.settings import get_capsule_settings
 
-from .models import Actor, InboxEntry
+from .models import Actor, Activity, InboxEntry
 from .service import ActivityPubService, get_activitypub_service
 
 logger = logging.getLogger(__name__)
@@ -115,14 +115,14 @@ async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def actor_inbox(
-    service: ActivityPubServiceInjection, username: str, entry: InboxEntry
+    service: ActivityPubServiceInjection, username: str, activity: Activity
 ) -> None:
     main_actor = service.get_main_actor()
 
     if username != main_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    await service.create_inbox_entry(entry)
+    await service.create_inbox_entry(InboxEntry(activity=activity))
 
 
 @router.get("/actors/{username}/outbox")

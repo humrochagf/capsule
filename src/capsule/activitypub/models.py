@@ -1,9 +1,13 @@
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from capsule.settings import get_capsule_settings
 
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 class PublicKey(BaseModel):
     id: HttpUrl
@@ -56,7 +60,20 @@ class Actor(BaseModel):
         return Actor(**data)
 
 
-class InboxEntry(BaseModel):
+class Activity(BaseModel):
     id: HttpUrl
 
     model_config = ConfigDict(extra="allow")
+
+
+class InboxEntryStatus(str, Enum):
+    received = "received"
+    processed = "processed"
+    error = "error"
+
+
+class InboxEntry(BaseModel):
+    activity: Activity
+    status: InboxEntryStatus = InboxEntryStatus.received
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
