@@ -3,13 +3,14 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import FileResponse
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
 from capsule.settings import get_capsule_settings
 
-from .models import Actor, Activity, InboxEntry
+from .models import Activity, Actor, InboxEntry
 from .service import ActivityPubService, get_activitypub_service
 
 logger = logging.getLogger(__name__)
@@ -47,31 +48,15 @@ async def well_known_nodeinfo() -> dict:
 
 
 @router.get("/.well-known/webfinger")
-async def well_known_webfinger(resource: str = "") -> dict:
+async def well_known_webfinger(
+    service: ActivityPubServiceInjection, resource: str = ""
+) -> dict:
     settings = get_capsule_settings()
     acct = resource.removeprefix("acct:").split("@")
 
     match acct:
         case [settings.username, settings.hostname.host]:
-            return {
-                "subject": f"acct:{settings.username}@{settings.hostname.host}",
-                "aliases": [
-                    f"{settings.hostname}@{settings.username}",
-                    f"{settings.hostname}actors/{settings.username}",
-                ],
-                "links": [
-                    {
-                        "rel": "http://webfinger.net/rel/profile-page",
-                        "type": "text/html",
-                        "href": f"{settings.hostname}@{settings.username}",
-                    },
-                    {
-                        "rel": "self",
-                        "type": "application/activity+json",
-                        "href": f"{settings.hostname}actors/{settings.username}",
-                    },
-                ],
-            }
+            return service.get_webfinger()
         case [_, _]:
             raise HTTPException(HTTP_404_NOT_FOUND)
         case _:
@@ -111,6 +96,19 @@ async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     return main_actor
+
+
+@router.get("/actors/{username}/icon")
+async def actor_profile_picture(
+    service: ActivityPubServiceInjection, username: str
+) -> FileResponse:
+    main_actor = service.get_main_actor()
+    settings = get_capsule_settings()
+
+    if username != main_actor.username or settings.profile_image is None:
+        raise HTTPException(HTTP_404_NOT_FOUND)
+
+    return FileResponse(settings.profile_image)
 
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)

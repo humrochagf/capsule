@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -81,6 +83,46 @@ def test_well_known_webfinger(
     }
 
 
+def test_well_known_webfinger_with_image(
+    client: TestClient, capsule_settings: CapsuleSettings, tmp_path: Path
+) -> None:
+    capsule_settings.username = "testuser"
+    capsule_settings.hostname = Url("https://example.com")
+
+    profile_image = tmp_path / "test.jpg"
+    profile_image.touch()
+    capsule_settings.profile_image = profile_image
+
+    acct = "acct:testuser@example.com"
+    response = client.get(f"/.well-known/webfinger?resource={acct}")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "subject": "acct:testuser@example.com",
+        "aliases": [
+            "https://example.com/@testuser",
+            "https://example.com/actors/testuser",
+        ],
+        "links": [
+            {
+                "rel": "http://webfinger.net/rel/profile-page",
+                "type": "text/html",
+                "href": "https://example.com/@testuser",
+            },
+            {
+                "rel": "self",
+                "type": "application/activity+json",
+                "href": "https://example.com/actors/testuser",
+            },
+            {
+                "rel": "http://webfinger.net/rel/avatar",
+                "type": "image/jpeg",
+                "href": "https://example.com/actors/testuser/icon",
+            },
+        ],
+    }
+
+
 def test_well_known_webfinger_not_found(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
@@ -127,7 +169,11 @@ def test_nodeinfo(client: TestClient) -> None:
     "accept", ["application/ld", "application/json", "application/activity+json"]
 )
 def test_actor(
-    client: TestClient, capsule_settings: CapsuleSettings, url: str, accept: str
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    url: str,
+    accept: str,
+    tmp_path: Path,
 ) -> None:
     capsule_settings.username = "testuser"
     capsule_settings.hostname = Url("https://example.com")
@@ -136,6 +182,10 @@ def test_actor(
     capsule_settings.public_key = (
         "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----"
     )
+
+    profile_image = tmp_path / "test.jpg"
+    profile_image.touch()
+    capsule_settings.profile_image = profile_image
 
     response = client.get(url, headers={"Accept": accept})
 
@@ -156,6 +206,11 @@ def test_actor(
             "id": "https://example.com/actors/testuser#main-key",
             "owner": "https://example.com/actors/testuser",
             "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
+        },
+        "icon": {
+            "type": "Image",
+            "mediaType": "image/jpeg",
+            "url": "https://example.com/actors/testuser/icon",
         },
     }
 
@@ -227,5 +282,30 @@ def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> 
 
 def test_actor_outbox_not_found(client: TestClient) -> None:
     response = client.get("/actors/notfound/outbox")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_actor_icon(
+    client: TestClient, capsule_settings: CapsuleSettings, tmp_path: Path
+) -> None:
+    capsule_settings.username = "testuser"
+
+    profile_image = tmp_path / "test.jpg"
+    profile_image.touch()
+    capsule_settings.profile_image = profile_image
+
+    response = client.get("/actors/testuser/icon")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["Content-Type"] == "image/jpeg"
+
+
+def test_actor_icon_not_found(
+    client: TestClient, capsule_settings: CapsuleSettings
+) -> None:
+    capsule_settings.username = "testuser"
+
+    response = client.get("/actors/testuser/icon")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND

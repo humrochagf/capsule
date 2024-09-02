@@ -1,3 +1,4 @@
+import mimetypes
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -8,6 +9,7 @@ from capsule.settings import get_capsule_settings
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
 
 class PublicKey(BaseModel):
     id: HttpUrl
@@ -56,6 +58,14 @@ class Actor(BaseModel):
                 "publicKeyPem": f"{settings.public_key}",
             },
         }
+
+        if settings.profile_image:
+            mime, _ = mimetypes.guess_type(settings.profile_image.name)
+            data["icon"] = {
+                "type": "Image",
+                "mediaType": mime,
+                "url": f"{settings.hostname}actors/{settings.username}/icon",
+            }
 
         return Actor(**data)
 

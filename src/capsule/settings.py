@@ -1,4 +1,4 @@
-from pydantic import HttpUrl, MongoDsn
+from pydantic import FilePath, HttpUrl, MongoDsn
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import SettingsConfigDict
 from wheke import WhekeSettings, get_settings
@@ -14,6 +14,8 @@ class CapsuleSettings(WhekeSettings):
     username: str = ""
     name: str = ""
     summary: str = ""
+    profile_image: FilePath | None = None
+
     public_key: str = ""
     private_key: str = ""
 
