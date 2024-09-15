@@ -85,7 +85,7 @@ class InboxEntryStatus(str, Enum):
 
 
 class InboxEntry(BaseModel):
-    id: ObjectId | None = Field(None, alias="_id", exclude=True)
+    id: ObjectId | None = Field(alias="_id", default=None, exclude=True)
     status: InboxEntryStatus = InboxEntryStatus.created
     activity: Activity
     created_at: datetime = Field(default_factory=utc_now)
