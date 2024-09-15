@@ -231,15 +231,15 @@ def test_actor_inbox(
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "Create",
-        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "id": "https://social.example/remoteactor/activity/1",
         "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/alyssa/",
+        "actor": "https://social.example/remoteactor/",
         "object": {
             "type": "Note",
-            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
-            "attributedTo": "https://social.example/alyssa/",
+            "id": "https://social.example/remoteactor/posts/1",
+            "attributedTo": "https://social.example/remoteactor/",
             "to": ["https://example.com/actors/testuser"],
-            "content": "Say, did you finish reading that book I lent you?",
+            "content": "Hello for the first time :)",
         },
     }
 
@@ -254,26 +254,26 @@ def test_actor_inbox(
                 "https://www.w3.org/ns/activitystreams",
                 "https://w3id.org/security/v1",
             ],
-            "id": "https://social.example/alyssa/",
+            "id": "https://social.example/remoteactor/",
             "type": "Person",
-            "name": "Alyssa",
-            "preferredUsername": "alyssa",
+            "name": "remoteactor",
+            "preferredUsername": "remoteactor",
             "summary": "Test Summary",
-            "inbox": "https://social.example/alyssa/inbox",
-            "outbox": "https://social.example/alyssa/outbox",
+            "inbox": "https://social.example/remoteactor/inbox",
+            "outbox": "https://social.example/remoteactor/outbox",
             "publicKey": {
-                "id": "https://social.example/alyssa#main-key",
-                "owner": "https://social.example/alyssa",
+                "id": "https://social.example/remoteactor#main-key",
+                "owner": "https://social.example/remoteactor",
                 "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
             },
             "icon": {
                 "type": "Image",
                 "mediaType": "image/jpeg",
-                "url": "https://social.example/alyssa/icon",
+                "url": "https://social.example/remoteactor/icon",
             },
         },
     )
-    respx_mock.get("https://social.example/alyssa/").mock(return_value=mocked_response)
+    respx_mock.get("https://social.example/remoteactor/").mock(return_value=mocked_response)
 
     response = client.post("/system/sync", json={})
 
@@ -284,13 +284,13 @@ def test_actor_inbox_not_found(client: TestClient) -> None:
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "Create",
-        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "id": "https://social.example/remoteactor/activity/404",
         "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/alyssa/",
+        "actor": "https://social.example/remoteactor/",
         "object": {
             "type": "Note",
-            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
-            "attributedTo": "https://social.example/alyssa/",
+            "id": "https://social.example/remoteactor/posts/404",
+            "attributedTo": "https://social.example/remoteactor/",
             "to": ["https://example.com/actors/testuser"],
             "content": "Say, did you finish reading that book I lent you?",
         },
@@ -309,12 +309,12 @@ def test_actor_inbox_request_without_actor(
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "Create",
-        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "id": "https://social.example/remoteactor/activity/422",
         "to": ["https://example.com/actors/testuser"],
         "object": {
             "type": "Note",
-            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
-            "attributedTo": "https://social.example/alyssa/",
+            "id": "https://social.example/remoteactor/posts/422",
+            "attributedTo": "https://social.example/remoteactor/",
             "to": ["https://example.com/actors/testuser"],
             "content": "Say, did you finish reading that book I lent you?",
         },
