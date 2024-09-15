@@ -27,11 +27,15 @@ classifiers = [
   "Topic :: Internet",
 ]
 dependencies = [
+  "cryptography",
   "jinja2",
   "motor",
   "uvicorn[standard]",
   "wheke",
 ]
+
+[project.scripts]
+capsule = "capsule.__main__:cli"
 
 [project.urls]
 Documentation = "https://github.com/humrochagf/capsule#readme"
@@ -47,7 +51,7 @@ dependencies = [
   "mypy",
   "pytest",
   "pytest-cov",
-  "pytest-asyncio",
+  "respx",
   "ruff",
 ]
 

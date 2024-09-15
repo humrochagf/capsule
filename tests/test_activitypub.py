@@ -3,7 +3,9 @@ from pathlib import Path
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from httpx import Response
 from pydantic_core import Url
+from respx import MockRouter
 
 from capsule.__about__ import __version__
 from capsule.settings import CapsuleSettings
@@ -221,7 +223,9 @@ def test_actor_not_found(client: TestClient) -> None:
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_actor_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
+def test_actor_inbox(
+    client: TestClient, capsule_settings: CapsuleSettings, respx_mock: MockRouter
+) -> None:
     capsule_settings.username = "testuser"
 
     payload = {
@@ -240,6 +244,38 @@ def test_actor_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> N
     }
 
     response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_response = Response(
+        status_code=200,
+        json={
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                "https://w3id.org/security/v1",
+            ],
+            "id": "https://social.example/alyssa/",
+            "type": "Person",
+            "name": "Alyssa",
+            "preferredUsername": "alyssa",
+            "summary": "Test Summary",
+            "inbox": "https://social.example/alyssa/inbox",
+            "outbox": "https://social.example/alyssa/outbox",
+            "publicKey": {
+                "id": "https://social.example/alyssa#main-key",
+                "owner": "https://social.example/alyssa",
+                "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
+            },
+            "icon": {
+                "type": "Image",
+                "mediaType": "image/jpeg",
+                "url": "https://social.example/alyssa/icon",
+            },
+        },
+    )
+    respx_mock.get("https://social.example/alyssa/").mock(return_value=mocked_response)
+
+    response = client.post("/system/sync", json={})
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
@@ -263,6 +299,30 @@ def test_actor_inbox_not_found(client: TestClient) -> None:
     response = client.post("/actors/notfound/inbox", json=payload)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_actor_inbox_request_without_actor(
+    client: TestClient, capsule_settings: CapsuleSettings
+) -> None:
+    capsule_settings.username = "testuser"
+
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
+        "to": ["https://example.com/actors/testuser"],
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
+            "attributedTo": "https://social.example/alyssa/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Say, did you finish reading that book I lent you?",
+        },
+    }
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
