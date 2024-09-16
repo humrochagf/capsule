@@ -11,7 +11,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_create_note
+from .utils import ap_actor, ap_create_note
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -234,6 +234,7 @@ def test_actor_inbox(
 ) -> None:
     capsule_settings.username = "testuser"
     private_key, public_key = rsa_keypair
+    remote_actor = ap_actor("remoteactor", public_key)
 
     payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
 
@@ -241,35 +242,8 @@ def test_actor_inbox(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    mocked_response = Response(
-        status_code=200,
-        json={
-            "@context": [
-                "https://www.w3.org/ns/activitystreams",
-                "https://w3id.org/security/v1",
-            ],
-            "id": "https://social.example/remoteactor/",
-            "type": "Person",
-            "name": "remoteactor",
-            "preferredUsername": "remoteactor",
-            "summary": "Test Summary",
-            "inbox": "https://social.example/remoteactor/inbox",
-            "outbox": "https://social.example/remoteactor/outbox",
-            "publicKey": {
-                "id": "https://social.example/remoteactor#main-key",
-                "owner": "https://social.example/remoteactor",
-                "publicKeyPem": public_key,
-            },
-            "icon": {
-                "type": "Image",
-                "mediaType": "image/jpeg",
-                "url": "https://social.example/remoteactor/icon",
-            },
-        },
-    )
-    respx_mock.get("https://social.example/remoteactor/").mock(
-        return_value=mocked_response
-    )
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
 
     response = client.post("/system/sync", json={})
 
@@ -278,7 +252,7 @@ def test_actor_inbox(
     payload = ap_create_note("remoteactor", "testuser", "Hello for the second time :)")
 
     auth = SignedRequestAuth(
-        public_key_id=Url("https://social.example/remoteactor#main-key"),
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
         private_key=private_key,
     )
     response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
@@ -294,6 +268,7 @@ def test_actor_inbox_bad_signature(
 ) -> None:
     capsule_settings.username = "testuser"
     private_key, public_key = rsa_keypair
+    remote_actor = ap_actor("remoteactor2", public_key)
 
     payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
 
@@ -301,35 +276,8 @@ def test_actor_inbox_bad_signature(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    mocked_response = Response(
-        status_code=200,
-        json={
-            "@context": [
-                "https://www.w3.org/ns/activitystreams",
-                "https://w3id.org/security/v1",
-            ],
-            "id": "https://social.example/remoteactor2/",
-            "type": "Person",
-            "name": "remoteactor2",
-            "preferredUsername": "remoteactor2",
-            "summary": "Test Summary",
-            "inbox": "https://social.example/remoteactor2/inbox",
-            "outbox": "https://social.example/remoteactor2/outbox",
-            "publicKey": {
-                "id": "https://social.example/remoteactor2#main-key",
-                "owner": "https://social.example/remoteactor2",
-                "publicKeyPem": public_key,
-            },
-            "icon": {
-                "type": "Image",
-                "mediaType": "image/jpeg",
-                "url": "https://social.example/remoteactor2/icon",
-            },
-        },
-    )
-    respx_mock.get("https://social.example/remoteactor2/").mock(
-        return_value=mocked_response
-    )
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
 
     response = client.post("/system/sync", json={})
 
