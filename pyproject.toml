@@ -28,6 +28,7 @@ classifiers = [
 ]
 dependencies = [
   "cryptography",
+  "httpx",
   "jinja2",
   "motor",
   "uvicorn[standard]",
@@ -47,7 +48,6 @@ path = "src/capsule/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
-  "httpx",
   "mypy",
   "pytest",
   "pytest-cov",
