@@ -1,4 +1,3 @@
-import base64
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import cast
@@ -12,12 +11,13 @@ from wheke import get_service
 
 from .exception import VerificationBadFormatError, VerificationError
 from .models import HttpSignatureInfo
+from .utils import calculate_sha_256_digest
 
 
 class SecurityService:
     async def verify_request(self, request: Request, public_key: str) -> None:
         if "digest" in request.headers:
-            expected_digest = self.calculate_digest(await request.body())
+            expected_digest = calculate_sha_256_digest(await request.body())
 
             if request.headers["digest"] != expected_digest:
                 msg = "Bad digest"
@@ -36,7 +36,13 @@ class SecurityService:
             msg = "Missing signature"
             raise VerificationBadFormatError(msg)
 
-        signature_info = self.extract_signature_info(request.headers["signature"])
+        try:
+            signature_info = HttpSignatureInfo.from_compiled_signature(
+                request.headers["signature"]
+            )
+        except KeyError as exc:
+            msg = "Bad signature"
+            raise VerificationBadFormatError(msg) from exc
 
         if signature_info.algorithm not in ["rsa-sha256", "hs2019"]:
             msg = "Unknown signature algorithm"
@@ -46,11 +52,9 @@ class SecurityService:
 
         for header in signature_info.headers:
             if header == "(request-target)":
-                value = f"{request.method.lower()} {request.url}"
-            elif header in ["content-type", "content-length"]:
-                value = request.headers[header]
+                value = f"{request.method.lower()} {request.url.path}"
             else:
-                value = request.headers[f"http_{header.replace('-', '_')}"]
+                value = request.headers[header]
 
             headers[header] = value
 
@@ -71,33 +75,6 @@ class SecurityService:
         except InvalidSignature as exc:
             msg = "Invalid Signature"
             raise VerificationError(msg) from exc
-
-    def calculate_digest(self, data: bytes) -> str:
-        digest = hashes.Hash(hashes.SHA256())
-        digest.update(data)
-
-        return "SHA-256=" + base64.b64encode(digest.finalize()).decode("ascii")
-
-    def extract_signature_info(self, signature: str) -> HttpSignatureInfo:
-        parts = {}
-
-        for part in signature.split(","):
-            key, value = part.split("=", 1)
-            value = value.strip('"')
-            parts[key.lower()] = value
-
-        try:
-            signature_info = HttpSignatureInfo(
-                headers=parts["headers"].split(),
-                signature=base64.b64decode(parts["signature"]),
-                algorithm=parts["algorithm"],
-                keyid=parts["keyid"],
-            )
-        except KeyError as exc:
-            msg = "Bad signature"
-            raise VerificationBadFormatError(msg) from exc
-
-        return signature_info
 
 
 def security_service_factory() -> SecurityService:

@@ -8,6 +8,7 @@ from pydantic_core import Url
 from respx import MockRouter
 
 from capsule.__about__ import __version__
+from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
 
@@ -224,9 +225,13 @@ def test_actor_not_found(client: TestClient) -> None:
 
 
 def test_actor_inbox(
-    client: TestClient, capsule_settings: CapsuleSettings, respx_mock: MockRouter
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
 ) -> None:
     capsule_settings.username = "testuser"
+    private_key, public_key = rsa_keypair
 
     payload = {
         "@context": "https://www.w3.org/ns/activitystreams",
@@ -264,7 +269,7 @@ def test_actor_inbox(
             "publicKey": {
                 "id": "https://social.example/remoteactor#main-key",
                 "owner": "https://social.example/remoteactor",
-                "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
+                "publicKeyPem": public_key,
             },
             "icon": {
                 "type": "Image",
@@ -273,11 +278,122 @@ def test_actor_inbox(
             },
         },
     )
-    respx_mock.get("https://social.example/remoteactor/").mock(return_value=mocked_response)
+    respx_mock.get("https://social.example/remoteactor/").mock(
+        return_value=mocked_response
+    )
 
     response = client.post("/system/sync", json={})
 
     assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/remoteactor/activity/2",
+        "to": ["https://example.com/actors/testuser"],
+        "actor": "https://social.example/remoteactor/",
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/remoteactor/posts/2",
+            "attributedTo": "https://social.example/remoteactor/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Hello for the second time :)",
+        },
+    }
+
+    auth = SignedRequestAuth(
+        public_key_id=Url("https://social.example/remoteactor#main-key"),
+        private_key=private_key,
+    )
+    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+def test_actor_inbox_bad_signature(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    private_key, public_key = rsa_keypair
+
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/remoteactor2/activity/1",
+        "to": ["https://example.com/actors/testuser"],
+        "actor": "https://social.example/remoteactor2/",
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/remoteactor2/posts/1",
+            "attributedTo": "https://social.example/remoteactor2/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Hello for the first time :)",
+        },
+    }
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_response = Response(
+        status_code=200,
+        json={
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                "https://w3id.org/security/v1",
+            ],
+            "id": "https://social.example/remoteactor2/",
+            "type": "Person",
+            "name": "remoteactor2",
+            "preferredUsername": "remoteactor2",
+            "summary": "Test Summary",
+            "inbox": "https://social.example/remoteactor2/inbox",
+            "outbox": "https://social.example/remoteactor2/outbox",
+            "publicKey": {
+                "id": "https://social.example/remoteactor2#main-key",
+                "owner": "https://social.example/remoteactor2",
+                "publicKeyPem": public_key,
+            },
+            "icon": {
+                "type": "Image",
+                "mediaType": "image/jpeg",
+                "url": "https://social.example/remoteactor2/icon",
+            },
+        },
+    )
+    respx_mock.get("https://social.example/remoteactor2/").mock(
+        return_value=mocked_response
+    )
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Create",
+        "id": "https://social.example/remoteactor/activity/2",
+        "to": ["https://example.com/actors/testuser"],
+        "actor": "https://social.example/remoteactor/",
+        "object": {
+            "type": "Note",
+            "id": "https://social.example/remoteactor/posts/2",
+            "attributedTo": "https://social.example/remoteactor/",
+            "to": ["https://example.com/actors/testuser"],
+            "content": "Hello for the second time :)",
+        },
+    }
+
+    response = client.post(
+        "/actors/testuser/inbox",
+        json=payload,
+        headers={"digest": "bad digest"},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 def test_actor_inbox_not_found(client: TestClient) -> None:
@@ -369,3 +485,9 @@ def test_actor_icon_not_found(
     response = client.get("/actors/testuser/icon")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_system_sync(client: TestClient) -> None:
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED

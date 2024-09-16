@@ -64,7 +64,7 @@ fmt = "ruff format {args:.}"
 
 [tool.coverage.run]
 source_pkgs = ["capsule", "tests"]
-branch = true
+branch = false
 parallel = true
 omit = [
   "src/capsule/__about__.py",

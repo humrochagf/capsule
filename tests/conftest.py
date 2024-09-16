@@ -6,6 +6,7 @@ from typer import Typer
 
 from capsule import app
 from capsule.__main__ import cli as capsule_cli
+from capsule.security.utils import generate_rsa_keypair
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
 
@@ -28,3 +29,8 @@ def capsule_settings() -> Generator[CapsuleSettings, None, None]:
 
     for key, value in data.items():
         setattr(settings, key, value)
+
+
+@pytest.fixture
+def rsa_keypair() -> tuple[str, str]:
+    return generate_rsa_keypair()

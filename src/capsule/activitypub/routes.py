@@ -4,10 +4,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from starlette.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_404_NOT_FOUND,
+)
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
+from capsule.security.exception import VerificationBadFormatError, VerificationError
 from capsule.security.service import SecurityService, get_security_service
 from capsule.settings import get_capsule_settings
 
@@ -130,7 +135,12 @@ async def actor_inbox(
     actor = await activitypub.get_actor(activity.actor)
 
     if actor:
-        await security.verify_request(request, actor.public_key.public_key_pem)
+        try:
+            await security.verify_request(request, actor.public_key.public_key_pem)
+        except VerificationBadFormatError as exc:
+            raise HTTPException(HTTP_400_BAD_REQUEST) from exc
+        except VerificationError as exc:
+            raise HTTPException(HTTP_401_UNAUTHORIZED) from exc
     else:
         logger.info("Inbox: New actor, skipping signature check")
 
