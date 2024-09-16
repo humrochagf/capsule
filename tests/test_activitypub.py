@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 from pathlib import Path
 
 import pytest
@@ -283,13 +285,45 @@ def test_actor_inbox_bad_signature(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    payload = ap_create_note("remoteactor2", "testuser", "Bad digest hello!")
+    payload = ap_create_note("remoteactor2", "testuser", "Bad hello!")
 
     response = client.post(
         "/actors/testuser/inbox",
         json=payload,
         headers={"digest": "bad digest"},
     )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    auth = SignedRequestAuth(
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
+        private_key=private_key,
+    )
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+
+    bad_date = format_datetime(
+        datetime.now(tz=timezone.utc) - timedelta(days=1),
+        usegmt=True,
+    )
+    request.headers["date"] = bad_date
+    client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    del request.headers["signature"]
+
+    client.send(request)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
