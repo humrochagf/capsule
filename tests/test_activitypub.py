@@ -11,6 +11,8 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
+from .utils import ap_create_note
+
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
 def test_well_known_host_meta(
@@ -233,20 +235,7 @@ def test_actor_inbox(
     capsule_settings.username = "testuser"
     private_key, public_key = rsa_keypair
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor/activity/1",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/remoteactor/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor/posts/1",
-            "attributedTo": "https://social.example/remoteactor/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Hello for the first time :)",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
 
     response = client.post("/actors/testuser/inbox", json=payload)
 
@@ -286,20 +275,7 @@ def test_actor_inbox(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor/activity/2",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/remoteactor/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor/posts/2",
-            "attributedTo": "https://social.example/remoteactor/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Hello for the second time :)",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser", "Hello for the second time :)")
 
     auth = SignedRequestAuth(
         public_key_id=Url("https://social.example/remoteactor#main-key"),
@@ -319,20 +295,7 @@ def test_actor_inbox_bad_signature(
     capsule_settings.username = "testuser"
     private_key, public_key = rsa_keypair
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor2/activity/1",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/remoteactor2/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor2/posts/1",
-            "attributedTo": "https://social.example/remoteactor2/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Hello for the first time :)",
-        },
-    }
+    payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
 
     response = client.post("/actors/testuser/inbox", json=payload)
 
@@ -372,20 +335,7 @@ def test_actor_inbox_bad_signature(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor/activity/2",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/remoteactor/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor/posts/2",
-            "attributedTo": "https://social.example/remoteactor/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Hello for the second time :)",
-        },
-    }
+    payload = ap_create_note("remoteactor2", "testuser", "Bad digest hello!")
 
     response = client.post(
         "/actors/testuser/inbox",
@@ -397,20 +347,7 @@ def test_actor_inbox_bad_signature(
 
 
 def test_actor_inbox_not_found(client: TestClient) -> None:
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor/activity/404",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/remoteactor/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor/posts/404",
-            "attributedTo": "https://social.example/remoteactor/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Say, did you finish reading that book I lent you?",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser")
 
     response = client.post("/actors/notfound/inbox", json=payload)
 
@@ -422,19 +359,8 @@ def test_actor_inbox_request_without_actor(
 ) -> None:
     capsule_settings.username = "testuser"
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/remoteactor/activity/422",
-        "to": ["https://example.com/actors/testuser"],
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/remoteactor/posts/422",
-            "attributedTo": "https://social.example/remoteactor/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Say, did you finish reading that book I lent you?",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser")
+    payload.pop("actor")
 
     response = client.post("/actors/testuser/inbox", json=payload)
 
