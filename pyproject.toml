@@ -48,6 +48,7 @@ path = "src/capsule/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
+  "isort",
   "mypy",
   "pytest",
   "pytest-cov",
@@ -60,7 +61,10 @@ cov = "pytest --cov"
 tests = "pytest {args:tests}"
 typing = "mypy --install-types --non-interactive {args:src/capsule tests}"
 lint = "ruff check {args:.}"
-fmt = "ruff format {args:.}"
+fmt = [
+  "isort {args:.}",
+  "ruff format {args:.}",
+]
 
 [tool.coverage.run]
 source_pkgs = ["capsule", "tests"]
