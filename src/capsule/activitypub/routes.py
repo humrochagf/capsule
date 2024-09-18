@@ -4,10 +4,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from starlette.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_404_NOT_FOUND,
+)
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
+from capsule.security.exception import VerificationBadFormatError, VerificationError
+from capsule.security.service import SecurityService, get_security_service
 from capsule.settings import get_capsule_settings
 
 from .models import Activity, Actor, InboxEntry
@@ -21,6 +27,8 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 ActivityPubServiceInjection = Annotated[
     ActivityPubService, Depends(get_activitypub_service)
 ]
+
+SecurityServiceInjection = Annotated[SecurityService, Depends(get_security_service)]
 
 
 @router.get("/.well-known/host-meta")
@@ -113,14 +121,30 @@ async def actor_profile_picture(
 
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def actor_inbox(
-    service: ActivityPubServiceInjection, username: str, activity: Activity
+    activitypub: ActivityPubServiceInjection,
+    security: SecurityServiceInjection,
+    request: Request,
+    username: str,
+    activity: Activity,
 ) -> None:
-    main_actor = service.get_main_actor()
+    main_actor = activitypub.get_main_actor()
 
     if username != main_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    await service.create_inbox_entry(InboxEntry(activity=activity))
+    actor = await activitypub.get_actor(activity.actor)
+
+    if actor:
+        try:
+            await security.verify_request(request, actor.public_key.public_key_pem)
+        except VerificationBadFormatError as exc:
+            raise HTTPException(HTTP_400_BAD_REQUEST) from exc
+        except VerificationError as exc:
+            raise HTTPException(HTTP_401_UNAUTHORIZED) from exc
+    else:
+        logger.info("Inbox: New actor, skipping signature check")
+
+    await activitypub.create_inbox_entry(InboxEntry(activity=activity))
 
 
 @router.get("/actors/{username}/outbox")
@@ -136,3 +160,8 @@ async def actor_outbox(service: ActivityPubServiceInjection, username: str) -> d
         "totalItems": 0,
         "orderedItems": [],
     }
+
+
+@router.post("/system/sync", status_code=status.HTTP_202_ACCEPTED)
+async def system_sync(service: ActivityPubServiceInjection) -> None:
+    await service.sync_inbox_entries()

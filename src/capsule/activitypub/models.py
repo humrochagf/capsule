@@ -2,6 +2,7 @@ import mimetypes
 from datetime import datetime, timezone
 from enum import Enum
 
+from bson.objectid import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from capsule.settings import get_capsule_settings
@@ -72,18 +73,22 @@ class Actor(BaseModel):
 
 class Activity(BaseModel):
     id: HttpUrl
+    actor: HttpUrl
 
     model_config = ConfigDict(extra="allow")
 
 
 class InboxEntryStatus(str, Enum):
-    received = "received"
-    processed = "processed"
+    created = "created"
+    synced = "synced"
     error = "error"
 
 
 class InboxEntry(BaseModel):
+    id: ObjectId | None = Field(alias="_id", default=None, exclude=True)
+    status: InboxEntryStatus = InboxEntryStatus.created
     activity: Activity
-    status: InboxEntryStatus = InboxEntryStatus.received
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)

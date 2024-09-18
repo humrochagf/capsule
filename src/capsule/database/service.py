@@ -21,6 +21,10 @@ class DatabaseService:
     def get_collection(self, name: str) -> AsyncIOMotorCollection:
         return self.database[name]
 
+    async def drop_db(self) -> None:
+        settings = get_capsule_settings()
+        await self.client.drop_database(settings.database_name)
+
 
 def database_service_factory() -> DatabaseService:
     return DatabaseService()

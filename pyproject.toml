@@ -27,11 +27,16 @@ classifiers = [
   "Topic :: Internet",
 ]
 dependencies = [
+  "cryptography",
+  "httpx",
   "jinja2",
   "motor",
   "uvicorn[standard]",
   "wheke",
 ]
+
+[project.scripts]
+capsule = "capsule.__main__:cli"
 
 [project.urls]
 Documentation = "https://github.com/humrochagf/capsule#readme"
@@ -43,11 +48,11 @@ path = "src/capsule/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
-  "httpx",
+  "isort",
   "mypy",
   "pytest",
   "pytest-cov",
-  "pytest-asyncio",
+  "respx",
   "ruff",
 ]
 
@@ -56,11 +61,14 @@ cov = "pytest --cov"
 tests = "pytest {args:tests}"
 typing = "mypy --install-types --non-interactive {args:src/capsule tests}"
 lint = "ruff check {args:.}"
-fmt = "ruff format {args:.}"
+fmt = [
+  "isort {args:.}",
+  "ruff format {args:.}",
+]
 
 [tool.coverage.run]
 source_pkgs = ["capsule", "tests"]
-branch = true
+branch = false
 parallel = true
 omit = [
   "src/capsule/__about__.py",

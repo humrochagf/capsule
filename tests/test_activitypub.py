@@ -1,12 +1,19 @@
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 from pathlib import Path
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from httpx import Response
 from pydantic_core import Url
+from respx import MockRouter
 
 from capsule.__about__ import __version__
+from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
+
+from .utils import ap_actor, ap_create_note
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -221,48 +228,161 @@ def test_actor_not_found(client: TestClient) -> None:
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_actor_inbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
+def test_actor_inbox(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
     capsule_settings.username = "testuser"
+    private_key, public_key = rsa_keypair
+    remote_actor = ap_actor("remoteactor", public_key)
 
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/alyssa/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
-            "attributedTo": "https://social.example/alyssa/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Say, did you finish reading that book I lent you?",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
 
     response = client.post("/actors/testuser/inbox", json=payload)
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = ap_create_note("remoteactor", "testuser", "Hello for the second time :)")
+
+    auth = SignedRequestAuth(
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
+        private_key=private_key,
+    )
+    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+def test_actor_inbox_bad_signature(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    private_key, public_key = rsa_keypair
+    remote_actor = ap_actor("remoteactor2", public_key)
+
+    payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = ap_create_note("remoteactor2", "testuser", "Bad hello!")
+
+    response = client.post(
+        "/actors/testuser/inbox",
+        json=payload,
+        headers={"digest": "bad digest"},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    auth = SignedRequestAuth(
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
+        private_key=private_key,
+    )
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+
+    bad_date = format_datetime(
+        datetime.now(tz=timezone.utc) - timedelta(days=1),
+        usegmt=True,
+    )
+    request.headers["date"] = bad_date
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    del request.headers["signature"]
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = "bad=signature"
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = 'keyId="id",signature="...",algorithm="unknown"'
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = 'keyId="id",signature="..."'
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 def test_actor_inbox_not_found(client: TestClient) -> None:
-    payload = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "type": "Create",
-        "id": "https://social.example/alyssa/posts/a29a6843-9feb-4c74-a7f7-081b9c9201d3",
-        "to": ["https://example.com/actors/testuser"],
-        "actor": "https://social.example/alyssa/",
-        "object": {
-            "type": "Note",
-            "id": "https://social.example/alyssa/posts/49e2d03d-b53a-4c4c-a95c-94a6abf45a19",
-            "attributedTo": "https://social.example/alyssa/",
-            "to": ["https://example.com/actors/testuser"],
-            "content": "Say, did you finish reading that book I lent you?",
-        },
-    }
+    payload = ap_create_note("remoteactor", "testuser")
 
     response = client.post("/actors/notfound/inbox", json=payload)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_actor_inbox_request_without_actor(
+    client: TestClient, capsule_settings: CapsuleSettings
+) -> None:
+    capsule_settings.username = "testuser"
+
+    payload = ap_create_note("remoteactor", "testuser")
+    payload.pop("actor")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
@@ -309,3 +429,9 @@ def test_actor_icon_not_found(
     response = client.get("/actors/testuser/icon")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_system_sync(client: TestClient) -> None:
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
