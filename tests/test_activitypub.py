@@ -311,7 +311,7 @@ def test_actor_inbox_bad_signature(
         usegmt=True,
     )
     request.headers["date"] = bad_date
-    client.send(request)
+    response = client.send(request)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -323,9 +323,45 @@ def test_actor_inbox_bad_signature(
     auth.sign_request(request)
     del request.headers["signature"]
 
-    client.send(request)
+    response = client.send(request)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = "bad=signature"
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = 'keyId="id",signature="...",algorithm="unknown"'
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    request = client.build_request(
+        "post",
+        "/actors/testuser/inbox",
+        json=payload,
+    )
+    auth.sign_request(request)
+    request.headers["signature"] = 'keyId="id",signature="..."'
+
+    response = client.send(request)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_actor_inbox_not_found(client: TestClient) -> None:

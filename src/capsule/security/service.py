@@ -40,7 +40,7 @@ class SecurityService:
             signature_info = HttpSignatureInfo.from_compiled_signature(
                 request.headers["signature"]
             )
-        except KeyError as exc:
+        except (KeyError, ValueError) as exc:
             msg = "Bad signature"
             raise VerificationBadFormatError(msg) from exc
 

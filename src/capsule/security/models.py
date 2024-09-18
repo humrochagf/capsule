@@ -32,8 +32,8 @@ class HttpSignatureInfo(BaseModel):
             parts[key.lower()] = value
 
         return HttpSignatureInfo(
-            headers=parts["headers"].split(),
-            signature=b64decode(parts["signature"]),
-            algorithm=parts["algorithm"],
             keyid=parts["keyid"],
+            signature=b64decode(parts["signature"]),
+            headers=parts.get("headers", "").split(),
+            algorithm=parts.get("algorithm", "rsa-sha256"),
         )
