@@ -7,7 +7,7 @@ from capsule.database.service import DatabaseService
 
 
 class ActorRepository:
-    name: str = "ap_actors"
+    name: str = "actors"
     collection: AsyncIOMotorCollection
 
     def __init__(self, database_service: DatabaseService) -> None:

@@ -9,7 +9,7 @@ from ..models import InboxEntry, InboxEntryStatus
 
 
 class InboxRepository:
-    name: str = "ap_inbox_entries"
+    name: str = "inbox_entries"
     collection: AsyncIOMotorCollection
 
     def __init__(self, database_service: DatabaseService) -> None:
