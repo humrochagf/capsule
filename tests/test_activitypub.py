@@ -13,7 +13,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_actor, ap_create_note
+from .utils import ap_actor, ap_create_note, ap_create_follow
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -383,6 +383,30 @@ def test_actor_inbox_request_without_actor(
     response = client.post("/actors/testuser/inbox", json=payload)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_actor_inbox_follow(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    _, public_key = rsa_keypair
+    remote_actor = ap_actor("followactor", public_key)
+
+    payload = ap_create_follow("followactor", "testuser")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:

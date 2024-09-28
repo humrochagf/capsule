@@ -5,6 +5,7 @@ def ap_create_note(
     from_actor: str,
     to_actor: str,
     note_content: str = "Hello World",
+    *,
     from_domain: str = "social.example",
     to_domain: str = "example.com",
 ) -> dict:
@@ -12,7 +13,7 @@ def ap_create_note(
         "@context": "https://www.w3.org/ns/activitystreams",
         "type": "Create",
         "id": f"https://{from_domain}/actors/{from_actor}/activity/{uuid4()}",
-        "to": [f"https://{to_domain}/actors/{to_domain}"],
+        "to": [f"https://{to_domain}/actors/{to_actor}"],
         "actor": f"https://{from_domain}/actors/{from_actor}",
         "object": {
             "type": "Note",
@@ -21,6 +22,22 @@ def ap_create_note(
             "to": [f"https://{to_domain}/actors/{to_actor}"],
             "content": note_content,
         },
+    }
+
+
+def ap_create_follow(
+    from_actor: str,
+    to_actor: str,
+    *,
+    from_domain: str = "social.example",
+    to_domain: str = "example.com",
+) -> dict:
+    return {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Follow",
+        "id": f"https://{from_domain}/actors/{from_actor}/activity/{uuid4()}",
+        "actor": f"https://{from_domain}/actors/{from_actor}",
+        "object": f"https://{to_domain}/actors/{to_actor}",
     }
 
 
