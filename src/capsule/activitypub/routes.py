@@ -1,9 +1,9 @@
-import logging
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
+from loguru import logger
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -18,8 +18,6 @@ from capsule.settings import get_capsule_settings
 
 from .models import Activity, Actor, InboxEntry
 from .service import ActivityPubService, get_activitypub_service
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["activitypub"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
