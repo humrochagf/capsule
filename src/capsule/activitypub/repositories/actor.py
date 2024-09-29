@@ -18,13 +18,13 @@ class ActorRepository:
     def get_main_actor(self) -> Actor:
         return Actor.make_main_actor()
 
+    async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
+        data = await self.collection.find_one({"id": {"$eq": str(actor_id)}})
+        return Actor(**data) if data else None
+
     async def upsert_actor(self, actor: Actor) -> None:
         await self.collection.replace_one(
             {"id": {"$eq": str(actor.id)}},
             to_jsonable_python(actor),
             upsert=True,
         )
-
-    async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
-        data = await self.collection.find_one({"id": {"$eq": str(actor_id)}})
-        return Actor(**data) if data else None

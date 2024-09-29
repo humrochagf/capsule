@@ -106,5 +106,6 @@ class FollowStatus(str, Enum):
 
 
 class Follow(BaseModel):
-    actor_id: HttpUrl
+    id: HttpUrl
+    actor: HttpUrl
     status: FollowStatus = FollowStatus.pending

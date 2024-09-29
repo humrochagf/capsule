@@ -13,15 +13,15 @@ class FollowRepository:
         self.collection = database_service.get_collection(collection_name)
 
     async def create_indexes(self) -> None:
-        await self.collection.create_index("actor_id", unique=True)
+        await self.collection.create_index("id", unique=True)
 
-    async def get_follow(self, actor_id: HttpUrl) -> Follow | None:
-        data = await self.collection.find_one({"id": {"$eq": str(actor_id)}})
+    async def get_follow(self, follow_id: HttpUrl) -> Follow | None:
+        data = await self.collection.find_one({"id": {"$eq": str(follow_id)}})
         return Follow(**data) if data else None
 
     async def upsert_follow(self, follow: Follow) -> None:
         await self.collection.replace_one(
-            {"actor_id": {"$eq": str(follow.actor_id)}},
+            {"id": {"$eq": str(follow.id)}},
             to_jsonable_python(follow),
             upsert=True,
         )

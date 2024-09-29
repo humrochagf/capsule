@@ -123,12 +123,14 @@ class ActivityPubService:
         await self.inbox.update_entries_state(synced_entries, InboxEntryStatus.synced)
 
     async def handle_follow(self, activity: Activity) -> None:
-        follow = await self.followers.get_follow(activity.actor)
+        follow = await self.followers.get_follow(activity.id)
 
         if follow is None:
             # Send accept https://www.w3.org/TR/activitystreams-vocabulary/#dfn-accept
             await self.followers.upsert_follow(
-                Follow(actor_id=activity.actor, status=FollowStatus.accepted)
+                Follow(
+                    id=activity.id, actor=activity.actor, status=FollowStatus.accepted
+                )
             )
 
 
