@@ -46,6 +46,9 @@ def ap_actor(username: str, public_key: str, domain: str = "social.example") -> 
         "@context": [
             "https://www.w3.org/ns/activitystreams",
             "https://w3id.org/security/v1",
+            {
+                "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            },
         ],
         "id": f"https://{domain}/actors/{username}",
         "type": "Person",
@@ -54,6 +57,7 @@ def ap_actor(username: str, public_key: str, domain: str = "social.example") -> 
         "summary": f"{username.capitalize()} Summary",
         "inbox": f"https://{domain}/actors/{username}/inbox",
         "outbox": f"https://{domain}/actors/{username}/outbox",
+        "manuallyApprovesFollowers": False,
         "publicKey": {
             "id": f"https://{domain}/actors/{username}#main-key",
             "owner": f"https://{domain}/actors/{username}",

@@ -7,11 +7,10 @@ from capsule.database.service import DatabaseService
 
 
 class ActorRepository:
-    name: str = "actors"
     collection: AsyncIOMotorCollection
 
-    def __init__(self, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(self.name)
+    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
+        self.collection = database_service.get_collection(collection_name)
 
     async def create_indexes(self) -> None:
         await self.collection.create_index("id", unique=True)

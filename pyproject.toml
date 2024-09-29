@@ -30,6 +30,7 @@ dependencies = [
   "cryptography",
   "httpx",
   "jinja2",
+  "loguru",
   "motor",
   "uvicorn[standard]",
   "wheke",

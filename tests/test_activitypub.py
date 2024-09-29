@@ -13,7 +13,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_actor, ap_create_note, ap_create_follow
+from .utils import ap_actor, ap_create_follow, ap_create_note
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -201,6 +201,9 @@ def test_actor(
         "@context": [
             "https://www.w3.org/ns/activitystreams",
             "https://w3id.org/security/v1",
+            {
+                "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            },
         ],
         "id": "https://example.com/actors/testuser",
         "type": "Person",
@@ -209,6 +212,7 @@ def test_actor(
         "summary": "Test Summary",
         "inbox": "https://example.com/actors/testuser/inbox",
         "outbox": "https://example.com/actors/testuser/outbox",
+        "manuallyApprovesFollowers": False,
         "publicKey": {
             "id": "https://example.com/actors/testuser#main-key",
             "owner": "https://example.com/actors/testuser",

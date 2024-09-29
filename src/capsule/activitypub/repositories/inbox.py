@@ -9,11 +9,10 @@ from ..models import InboxEntry, InboxEntryStatus
 
 
 class InboxRepository:
-    name: str = "inbox_entries"
     collection: AsyncIOMotorCollection
 
-    def __init__(self, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(self.name)
+    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
+        self.collection = database_service.get_collection(collection_name)
 
     async def create_indexes(self) -> None:
         await self.collection.create_index("created_at")

@@ -1,31 +1,41 @@
 import mimetypes
 
 import httpx
+from loguru import logger
 from pydantic import HttpUrl
 from wheke import get_service
 
 from capsule.database.service import get_database_service
 from capsule.settings import get_capsule_settings
 
-from .models import Actor, InboxEntry, InboxEntryStatus
-from .repositories import ActorRepository, InboxRepository
+from .models import Activity, Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
+from .repositories import ActorRepository, FollowRepository, InboxRepository
 
 
 class ActivityPubService:
-    actors: ActorRepository
     inbox: InboxRepository
+    actors: ActorRepository
+    followers: FollowRepository
+    following: FollowRepository
 
     def __init__(
         self,
-        actor_repository: ActorRepository,
+        *,
         inbox_repository: InboxRepository,
+        actor_repository: ActorRepository,
+        followers_repository: FollowRepository,
+        following_repository: FollowRepository,
     ) -> None:
-        self.actors = actor_repository
         self.inbox = inbox_repository
+        self.actors = actor_repository
+        self.followers = followers_repository
+        self.following = following_repository
 
     async def setup_repositories(self) -> None:
         await self.inbox.create_indexes()
         await self.actors.create_indexes()
+        await self.followers.create_indexes()
+        await self.following.create_indexes()
 
     def get_main_actor(self) -> Actor:
         return self.actors.get_main_actor()
@@ -100,18 +110,37 @@ class ActivityPubService:
                 if actor:
                     actors[entry.activity.actor] = actor
 
+            match entry.activity.type:
+                case "Follow":
+                    await self.handle_follow(entry.activity)
+                case unmatched_type:
+                    logger.warning(
+                        f"Activity type {unmatched_type} is not supported yet"
+                    )
+
             synced_entries.append(entry.id)
 
         await self.inbox.update_entries_state(synced_entries, InboxEntryStatus.synced)
+
+    async def handle_follow(self, activity: Activity) -> None:
+        follow = await self.followers.get_follow(activity.actor)
+
+        if follow is None:
+            # Send accept https://www.w3.org/TR/activitystreams-vocabulary/#dfn-accept
+            await self.followers.upsert_follow(
+                Follow(actor_id=activity.actor, status=FollowStatus.accepted)
+            )
 
 
 def activitypub_service_factory() -> ActivityPubService:
     database_service = get_database_service()
 
-    actor_repository = ActorRepository(database_service)
-    inbox_repository = InboxRepository(database_service)
-
-    return ActivityPubService(actor_repository, inbox_repository)
+    return ActivityPubService(
+        inbox_repository=InboxRepository("inbox", database_service),
+        actor_repository=ActorRepository("actors", database_service),
+        followers_repository=FollowRepository("followers", database_service),
+        following_repository=FollowRepository("following", database_service),
+    )
 
 
 def get_activitypub_service() -> ActivityPubService:

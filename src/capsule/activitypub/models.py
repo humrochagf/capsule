@@ -35,6 +35,7 @@ class Actor(BaseModel):
     inbox: HttpUrl
     outbox: HttpUrl
     public_key: PublicKey = Field(alias="publicKey")
+    manually_approve_followers: bool = Field(alias="manuallyApprovesFollowers")
 
     model_config = ConfigDict(extra="allow")
 
@@ -45,6 +46,9 @@ class Actor(BaseModel):
             "@context": [
                 "https://www.w3.org/ns/activitystreams",
                 "https://w3id.org/security/v1",
+                {
+                    "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+                },
             ],
             "id": f"{settings.hostname}actors/{settings.username}",
             "type": "Person",
@@ -53,6 +57,7 @@ class Actor(BaseModel):
             "summary": f"{settings.summary}",
             "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
             "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
+            "manuallyApprovesFollowers": False,
             "publicKey": {
                 "id": f"{settings.hostname}actors/{settings.username}#main-key",
                 "owner": f"{settings.hostname}actors/{settings.username}",
@@ -74,6 +79,7 @@ class Actor(BaseModel):
 class Activity(BaseModel):
     id: HttpUrl
     actor: HttpUrl
+    type: str
 
     model_config = ConfigDict(extra="allow")
 
@@ -92,3 +98,13 @@ class InboxEntry(BaseModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class FollowStatus(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+
+
+class Follow(BaseModel):
+    actor_id: HttpUrl
+    status: FollowStatus = FollowStatus.pending
