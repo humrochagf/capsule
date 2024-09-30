@@ -2,7 +2,7 @@ import mimetypes
 from collections import defaultdict
 
 import httpx
-import structlog
+from loguru import logger
 from pydantic import HttpUrl
 from pydantic_core import Url
 from wheke import get_service
@@ -13,8 +13,6 @@ from capsule.settings import get_capsule_settings
 
 from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
-
-logger = structlog.get_logger()
 
 
 class ActivityPubService:
@@ -94,12 +92,11 @@ class ActivityPubService:
             response = await client.get(str(actor_id))
 
             if response.is_error:
-                logger.error(
-                    "Failed to fetch actor from remote",
+                logger.bind(
                     actor_id=actor_id,
                     http_status=response.status_code,
                     http_message=response.text,
-                )
+                ).error("Failed to fetch actor from remote")
                 return None
 
             return Actor(**response.json())
@@ -133,7 +130,8 @@ class ActivityPubService:
                 case unmatched_type:
                     entry.status = InboxEntryStatus.not_implemented
                     logger.warning(
-                        f"Activity type {unmatched_type} is not supported yet"
+                        "Activity type {} is not supported yet",
+                        unmatched_type,
                     )
 
             parsed_entries[entry.status].append(entry.id)
@@ -166,12 +164,11 @@ class ActivityPubService:
                 )
 
                 if response.is_error:
-                    logger.error(
-                        "Failed to accept follow",
+                    logger.bind(
                         follow_id=follow.id,
                         http_status=response.status_code,
                         http_message=response.text,
-                    )
+                    ).error("Failed to accept follow")
                     entry.status = InboxEntryStatus.error
                     return None
 
