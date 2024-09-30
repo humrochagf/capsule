@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from loguru import logger
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
@@ -56,13 +56,15 @@ async def well_known_nodeinfo() -> dict:
 @router.get("/.well-known/webfinger")
 async def well_known_webfinger(
     service: ActivityPubServiceInjection, resource: str = ""
-) -> dict:
+) -> JSONResponse:
     settings = get_capsule_settings()
     acct = resource.removeprefix("acct:").split("@")
 
     match acct:
         case [settings.username, settings.hostname.host]:
-            return service.get_webfinger()
+            return JSONResponse(
+                content=service.get_webfinger(), media_type="application/jrd+json"
+            )
         case [_, _]:
             raise HTTPException(HTTP_404_NOT_FOUND)
         case _:

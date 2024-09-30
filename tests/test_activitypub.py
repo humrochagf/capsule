@@ -69,6 +69,7 @@ def test_well_known_webfinger(
     response = client.get(f"/.well-known/webfinger?resource={acct}")
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.headers["Content-Type"] == "application/jrd+json"
     assert response.json() == {
         "subject": "acct:testuser@example.com",
         "aliases": [
@@ -104,6 +105,7 @@ def test_well_known_webfinger_with_image(
     response = client.get(f"/.well-known/webfinger?resource={acct}")
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.headers["Content-Type"] == "application/jrd+json"
     assert response.json() == {
         "subject": "acct:testuser@example.com",
         "aliases": [
