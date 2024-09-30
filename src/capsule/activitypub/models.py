@@ -1,6 +1,7 @@
 import mimetypes
 from datetime import datetime, timezone
 from enum import Enum
+from uuid import NAMESPACE_URL, uuid5
 
 from bson.objectid import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -50,17 +51,17 @@ class Actor(BaseModel):
                     "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
                 },
             ],
-            "id": f"{settings.hostname}actors/{settings.username}",
+            "id": settings.actor_url,
             "type": "Person",
             "name": f"{settings.name}",
             "preferredUsername": f"{settings.username}",
             "summary": f"{settings.summary}",
-            "inbox": f"{settings.hostname}actors/{settings.username}/inbox",
-            "outbox": f"{settings.hostname}actors/{settings.username}/outbox",
+            "inbox": f"{settings.actor_url}/inbox",
+            "outbox": f"{settings.actor_url}/outbox",
             "manuallyApprovesFollowers": False,
             "publicKey": {
-                "id": f"{settings.hostname}actors/{settings.username}#main-key",
-                "owner": f"{settings.hostname}actors/{settings.username}",
+                "id": f"{settings.public_key_id}",
+                "owner": f"{settings.actor_url}",
                 "publicKeyPem": f"{settings.public_key}",
             },
         }
@@ -70,7 +71,7 @@ class Actor(BaseModel):
             data["icon"] = {
                 "type": "Image",
                 "mediaType": mime,
-                "url": f"{settings.hostname}actors/{settings.username}/icon",
+                "url": f"{settings.actor_url}/icon",
             }
 
         return Actor(**data)
@@ -88,6 +89,7 @@ class InboxEntryStatus(str, Enum):
     created = "created"
     synced = "synced"
     error = "error"
+    not_implemented = "not_implemented"
 
 
 class InboxEntry(BaseModel):
@@ -109,3 +111,26 @@ class Follow(BaseModel):
     id: HttpUrl
     actor: HttpUrl
     status: FollowStatus = FollowStatus.pending
+
+    def to_accept_ap(self) -> dict:
+        settings = get_capsule_settings()
+        activity_id = uuid5(NAMESPACE_URL, str(self.id))
+
+        return {
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                "https://w3id.org/security/v1",
+                {
+                    "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+                },
+            ],
+            "type": "Accept",
+            "id": f"{settings.actor_url}/activity/{activity_id}",
+            "actor": settings.actor_url,
+            "object": {
+                "type": "Follow",
+                "id": str(self.id),
+                "actor": str(self.actor),
+                "object": settings.actor_url,
+            },
+        }

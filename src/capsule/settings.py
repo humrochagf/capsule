@@ -23,6 +23,18 @@ class CapsuleSettings(WhekeSettings):
         env_prefix="capsule_", env_file=".env", env_file_encoding="utf-8"
     )
 
+    @property
+    def profile_url(self) -> str:
+        return f"{self.hostname}@{self.username}"
+
+    @property
+    def actor_url(self) -> str:
+        return f"{self.hostname}actors/{self.username}"
+
+    @property
+    def public_key_id(self) -> str:
+        return f"{self.actor_url}#main-key"
+
 
 def get_capsule_settings() -> CapsuleSettings:
     return get_settings(CapsuleSettings)

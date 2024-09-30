@@ -21,16 +21,20 @@ def cli() -> Typer:
 
 
 @pytest.fixture
-def capsule_settings() -> Generator[CapsuleSettings, None, None]:
+def rsa_keypair() -> tuple[str, str]:
+    return generate_rsa_keypair()
+
+
+@pytest.fixture
+def capsule_settings(
+    rsa_keypair: tuple[str, str],
+) -> Generator[CapsuleSettings, None, None]:
     settings = get_capsule_settings()
     data = settings.model_dump()
+
+    settings.private_key, settings.public_key = rsa_keypair
 
     yield settings
 
     for key, value in data.items():
         setattr(settings, key, value)
-
-
-@pytest.fixture
-def rsa_keypair() -> tuple[str, str]:
-    return generate_rsa_keypair()

@@ -3,9 +3,8 @@ from collections.abc import AsyncGenerator
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic_core import to_jsonable_python
 
+from capsule.activitypub.models import InboxEntry, InboxEntryStatus
 from capsule.database.service import DatabaseService
-
-from ..models import InboxEntry, InboxEntryStatus
 
 
 class InboxRepository:

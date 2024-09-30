@@ -405,8 +405,38 @@ def test_actor_inbox_follow(
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    mocked_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+    mocked_actor_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
+
+    mocked_inbox_response = Response(status_code=202)
+    respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+def test_actor_inbox_follow_failed_to_accept(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    _, public_key = rsa_keypair
+    remote_actor = ap_actor("followerroractor", public_key)
+
+    payload = ap_create_follow("followerroractor", "testuser")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_actor_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
+
+    mocked_inbox_response = Response(status_code=500)
+    respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
 
     response = client.post("/system/sync", json={})
 
@@ -460,6 +490,30 @@ def test_actor_icon_not_found(
 
 
 def test_system_sync(client: TestClient) -> None:
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+def test_system_sync_failed_to_fetch_actor(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    _, public_key = rsa_keypair
+    remote_actor = ap_actor("failedfetchactor", public_key)
+
+    payload = ap_create_note("failedfetchactor", "testuser")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    mocked_response = Response(status_code=500)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
     response = client.post("/system/sync", json={})
 
     assert response.status_code == status.HTTP_202_ACCEPTED

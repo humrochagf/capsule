@@ -1,14 +1,17 @@
 import mimetypes
+from collections import defaultdict
 
 import httpx
 from loguru import logger
 from pydantic import HttpUrl
+from pydantic_core import Url
 from wheke import get_service
 
 from capsule.database.service import get_database_service
+from capsule.security.utils import SignedRequestAuth
 from capsule.settings import get_capsule_settings
 
-from .models import Activity, Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
+from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
 
 
@@ -53,20 +56,17 @@ class ActivityPubService:
         settings = get_capsule_settings()
         webfinger: dict = {
             "subject": f"acct:{settings.username}@{settings.hostname.host}",
-            "aliases": [
-                f"{settings.hostname}@{settings.username}",
-                f"{settings.hostname}actors/{settings.username}",
-            ],
+            "aliases": [settings.profile_url, settings.actor_url],
             "links": [
                 {
                     "rel": "http://webfinger.net/rel/profile-page",
                     "type": "text/html",
-                    "href": f"{settings.hostname}@{settings.username}",
+                    "href": settings.profile_url,
                 },
                 {
                     "rel": "self",
                     "type": "application/activity+json",
-                    "href": f"{settings.hostname}actors/{settings.username}",
+                    "href": settings.actor_url,
                 },
             ],
         }
@@ -77,7 +77,7 @@ class ActivityPubService:
                 {
                     "rel": "http://webfinger.net/rel/avatar",
                     "type": mime,
-                    "href": f"{settings.hostname}actors/{settings.username}/icon",
+                    "href": f"{settings.actor_url}/icon",
                 }
             )
 
@@ -91,14 +91,24 @@ class ActivityPubService:
         async with httpx.AsyncClient(headers=headers) as client:
             response = await client.get(str(actor_id))
 
+            if response.is_error:
+                logger.error(
+                    f"Failed to fetch actor {actor_id} from remote",
+                    http_status=response.status_code,
+                    http_message=response.text,
+                )
+                return None
+
             return Actor(**response.json())
 
     async def sync_inbox_entries(self) -> None:
         actors: dict[HttpUrl, Actor] = {}
-        synced_entries: list = []
+        parsed_entries: dict[InboxEntryStatus, list] = defaultdict(list)
 
         async for entry in self.inbox.list_entries(InboxEntryStatus.created):
-            if entry.activity.actor not in actors:
+            actor = actors.get(entry.activity.actor)
+
+            if actor is None:
                 actor = await self.get_actor(entry.activity.actor)
 
                 if not actor:
@@ -110,28 +120,55 @@ class ActivityPubService:
                 if actor:
                     actors[entry.activity.actor] = actor
 
+            if actor is None:
+                parsed_entries[InboxEntryStatus.error].append(entry.id)
+                continue
+
             match entry.activity.type:
                 case "Follow":
-                    await self.handle_follow(entry.activity)
+                    await self.handle_follow(entry, actor)
                 case unmatched_type:
+                    entry.status = InboxEntryStatus.not_implemented
                     logger.warning(
                         f"Activity type {unmatched_type} is not supported yet"
                     )
 
-            synced_entries.append(entry.id)
+            parsed_entries[entry.status].append(entry.id)
 
-        await self.inbox.update_entries_state(synced_entries, InboxEntryStatus.synced)
+        for status, entries in parsed_entries.items():
+            await self.inbox.update_entries_state(entries, status)
 
-    async def handle_follow(self, activity: Activity) -> None:
-        follow = await self.followers.get_follow(activity.id)
+    async def handle_follow(self, entry: InboxEntry, actor: Actor) -> None:
+        settings = get_capsule_settings()
+        follow = await self.followers.get_follow(entry.activity.id)
 
         if follow is None:
-            # Send accept https://www.w3.org/TR/activitystreams-vocabulary/#dfn-accept
-            await self.followers.upsert_follow(
-                Follow(
-                    id=activity.id, actor=activity.actor, status=FollowStatus.accepted
-                )
+            follow = Follow(
+                id=entry.activity.id,
+                actor=entry.activity.actor,
+                status=FollowStatus.accepted,
             )
+            auth = SignedRequestAuth(
+                public_key_id=Url(settings.public_key_id),
+                private_key=settings.private_key,
+            )
+
+            async with httpx.AsyncClient(auth=auth) as client:
+                response = await client.post(
+                    str(actor.inbox), json=follow.to_accept_ap()
+                )
+
+                if response.is_error:
+                    logger.error(
+                        f"Failed to accept {follow.id} follow",
+                        http_status=response.status_code,
+                        http_message=response.text,
+                    )
+                    entry.status = InboxEntryStatus.error
+                    return None
+
+            await self.followers.upsert_follow(follow)
+            entry.status = InboxEntryStatus.synced
 
 
 def activitypub_service_factory() -> ActivityPubService:
