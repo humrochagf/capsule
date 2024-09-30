@@ -9,13 +9,15 @@ from wheke import get_service
 
 from capsule.database.service import get_database_service
 from capsule.security.utils import SignedRequestAuth
-from capsule.settings import get_capsule_settings
+from capsule.settings import CapsuleSettings, get_capsule_settings
 
 from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
 
 
 class ActivityPubService:
+    settings: CapsuleSettings
+
     inbox: InboxRepository
     actors: ActorRepository
     followers: FollowRepository
@@ -29,6 +31,8 @@ class ActivityPubService:
         followers_repository: FollowRepository,
         following_repository: FollowRepository,
     ) -> None:
+        self.settings = get_capsule_settings()
+
         self.inbox = inbox_repository
         self.actors = actor_repository
         self.followers = followers_repository
@@ -53,31 +57,30 @@ class ActivityPubService:
         return 1
 
     def get_webfinger(self) -> dict:
-        settings = get_capsule_settings()
         webfinger: dict = {
-            "subject": f"acct:{settings.username}@{settings.hostname.host}",
-            "aliases": [settings.profile_url, settings.actor_url],
+            "subject": f"acct:{self.settings.username}@{self.settings.hostname.host}",
+            "aliases": [self.settings.profile_url, self.settings.actor_url],
             "links": [
                 {
                     "rel": "http://webfinger.net/rel/profile-page",
                     "type": "text/html",
-                    "href": settings.profile_url,
+                    "href": self.settings.profile_url,
                 },
                 {
                     "rel": "self",
                     "type": "application/activity+json",
-                    "href": settings.actor_url,
+                    "href": self.settings.actor_url,
                 },
             ],
         }
 
-        if settings.profile_image:
-            mime, _ = mimetypes.guess_type(settings.profile_image.name)
+        if self.settings.profile_image:
+            mime, _ = mimetypes.guess_type(self.settings.profile_image.name)
             webfinger["links"].append(
                 {
                     "rel": "http://webfinger.net/rel/avatar",
                     "type": mime,
-                    "href": f"{settings.actor_url}/icon",
+                    "href": f"{self.settings.actor_url}/icon",
                 }
             )
 
@@ -87,8 +90,15 @@ class ActivityPubService:
         await self.inbox.create_entry(entry)
 
     async def fetch_actor_from_remote(self, actor_id: HttpUrl) -> Actor | None:
-        headers = {"Accept": "application/activity+json"}
-        async with httpx.AsyncClient(headers=headers) as client:
+        auth = SignedRequestAuth(
+            public_key_id=Url(self.settings.public_key_id),
+            private_key=self.settings.private_key,
+        )
+        headers = {
+            "User-Agent": self.settings.user_agent,
+            "Accept": "application/activity+json,application/ld+json",
+        }
+        async with httpx.AsyncClient(auth=auth, headers=headers) as client:
             response = await client.get(str(actor_id))
 
             if response.is_error:
@@ -140,7 +150,6 @@ class ActivityPubService:
             await self.inbox.update_entries_state(entries, status)
 
     async def handle_follow(self, entry: InboxEntry, actor: Actor) -> None:
-        settings = get_capsule_settings()
         follow = await self.followers.get_follow(entry.activity.id)
 
         if follow is None:
@@ -150,12 +159,12 @@ class ActivityPubService:
                 status=FollowStatus.accepted,
             )
             auth = SignedRequestAuth(
-                public_key_id=Url(settings.public_key_id),
-                private_key=settings.private_key,
+                public_key_id=Url(self.settings.public_key_id),
+                private_key=self.settings.private_key,
             )
             headers = {
+                "User-Agent": self.settings.user_agent,
                 "Content-Type": "application/activity+json",
-                "User-Agent": settings.user_agent,
             }
 
             async with httpx.AsyncClient(auth=auth, headers=headers) as client:
