@@ -1,7 +1,10 @@
+import httpx
 from pydantic import FilePath, HttpUrl, MongoDsn
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import SettingsConfigDict
 from wheke import WhekeSettings, get_settings
+
+from .__about__ import __version__
 
 
 class CapsuleSettings(WhekeSettings):
@@ -34,6 +37,13 @@ class CapsuleSettings(WhekeSettings):
     @property
     def public_key_id(self) -> str:
         return f"{self.actor_url}#main-key"
+
+    @property
+    def user_agent(self):
+        return (
+            f"python-httpx/{httpx.__version__} "
+            f"({self.project_name}/{__version__}; +{self.hostname})"
+        )
 
 
 def get_capsule_settings() -> CapsuleSettings:

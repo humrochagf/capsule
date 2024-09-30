@@ -152,8 +152,12 @@ class ActivityPubService:
                 public_key_id=Url(settings.public_key_id),
                 private_key=settings.private_key,
             )
+            headers = {
+                "Content-Type": "application/activity+json",
+                "User-Agent": settings.user_agent,
+            }
 
-            async with httpx.AsyncClient(auth=auth) as client:
+            async with httpx.AsyncClient(auth=auth, headers=headers) as client:
                 response = await client.post(
                     str(actor.inbox), json=follow.to_accept_ap()
                 )
