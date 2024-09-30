@@ -2,7 +2,7 @@ import mimetypes
 from collections import defaultdict
 
 import httpx
-from loguru import logger
+import structlog
 from pydantic import HttpUrl
 from pydantic_core import Url
 from wheke import get_service
@@ -13,6 +13,8 @@ from capsule.settings import get_capsule_settings
 
 from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
+
+logger = structlog.get_logger()
 
 
 class ActivityPubService:
@@ -93,7 +95,8 @@ class ActivityPubService:
 
             if response.is_error:
                 logger.error(
-                    f"Failed to fetch actor {actor_id} from remote",
+                    "Failed to fetch actor from remote",
+                    actor_id=actor_id,
                     http_status=response.status_code,
                     http_message=response.text,
                 )
@@ -164,7 +167,8 @@ class ActivityPubService:
 
                 if response.is_error:
                     logger.error(
-                        f"Failed to accept {follow.id} follow",
+                        "Failed to accept follow",
+                        follow_id=follow.id,
                         http_status=response.status_code,
                         http_message=response.text,
                     )

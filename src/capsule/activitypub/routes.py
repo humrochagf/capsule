@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
-from loguru import logger
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -18,6 +18,8 @@ from capsule.settings import get_capsule_settings
 
 from .models import Activity, Actor, InboxEntry
 from .service import ActivityPubService, get_activitypub_service
+
+logger = structlog.get_logger()
 
 router = APIRouter(tags=["activitypub"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -140,7 +142,7 @@ async def actor_inbox(
         except VerificationError as exc:
             raise HTTPException(HTTP_401_UNAUTHORIZED) from exc
     else:
-        logger.info("Inbox: New actor, skipping signature check")
+        logger.info("New actor, skipping signature check", actor_id=activity.actor)
 
     await activitypub.create_inbox_entry(InboxEntry(activity=activity))
 
