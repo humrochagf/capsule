@@ -36,7 +36,7 @@ class Actor(BaseModel):
     inbox: HttpUrl
     outbox: HttpUrl
     public_key: PublicKey = Field(alias="publicKey")
-    manually_approve_followers: bool = Field(alias="manuallyApprovesFollowers")
+    manually_approve_followers: bool = Field(False, alias="manuallyApprovesFollowers")
 
     model_config = ConfigDict(extra="allow")
 
