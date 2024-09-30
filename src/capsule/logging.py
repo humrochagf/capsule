@@ -29,6 +29,7 @@ def configure_logger() -> None:
 
     # Change handler for uvicorn loggers
     logging.getLogger("uvicorn").handlers = [intercept_handler]
+    logging.getLogger("uvicorn.access").handlers = [intercept_handler]
 
     # Configure other loggers
     logging.basicConfig(handlers=[intercept_handler], level=0, force=True)
