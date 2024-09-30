@@ -199,6 +199,7 @@ def test_actor(
     response = client.get(url, headers={"Accept": accept})
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.headers["Content-Type"] == "application/activity+json"
     assert response.json() == {
         "@context": [
             "https://www.w3.org/ns/activitystreams",

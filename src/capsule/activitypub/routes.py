@@ -29,6 +29,14 @@ ActivityPubServiceInjection = Annotated[
 SecurityServiceInjection = Annotated[SecurityService, Depends(get_security_service)]
 
 
+class ActivityJSONResponse(JSONResponse):
+    media_type = "application/activity+json"
+
+
+class JRDJSONResponse(JSONResponse):
+    media_type = "application/jrd+json"
+
+
 @router.get("/.well-known/host-meta")
 async def well_known_host_meta(request: Request) -> Response:
     return templates.TemplateResponse(
@@ -53,18 +61,16 @@ async def well_known_nodeinfo() -> dict:
     }
 
 
-@router.get("/.well-known/webfinger")
+@router.get("/.well-known/webfinger", response_class=JRDJSONResponse)
 async def well_known_webfinger(
     service: ActivityPubServiceInjection, resource: str = ""
-) -> JSONResponse:
+) -> dict:
     settings = get_capsule_settings()
     acct = resource.removeprefix("acct:").split("@")
 
     match acct:
         case [settings.username, settings.hostname.host]:
-            return JSONResponse(
-                content=service.get_webfinger(), media_type="application/jrd+json"
-            )
+            return service.get_webfinger()
         case [_, _]:
             raise HTTPException(HTTP_404_NOT_FOUND)
         case _:
@@ -95,8 +101,8 @@ async def nodeinfo(service: ActivityPubServiceInjection) -> dict:
     }
 
 
-@router.get("/@{username}")
-@router.get("/actors/{username}")
+@router.get("/@{username}", response_class=ActivityJSONResponse)
+@router.get("/actors/{username}", response_class=ActivityJSONResponse)
 async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
     main_actor = service.get_main_actor()
 
