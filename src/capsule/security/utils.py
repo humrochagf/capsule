@@ -68,29 +68,32 @@ class SignedRequestAuth(Auth):
             datetime.now(tz=timezone.utc),
             usegmt=True,
         )
+        request.headers["Content-Type"] = request.headers.get(
+            "Content-Type", "application/activity+json"
+        )
+
+        headers_to_sign = ["(request-target)", "Host", "Date", "Content-Type"]
 
         if request.content is not None:
             request.headers["Digest"] = calculate_sha_256_digest(request.content)
+            headers_to_sign.append("Digest")
 
-        headers_to_sign = "\n".join(
-            f"{name.lower()}: {value}" for name, value in request.headers.items()
-        )
+        data_to_sign = "\n".join(
+            f"{header.lower()}: {request.headers[header]}" for header in headers_to_sign
+        ).encode("utf8")
         private_key_instance: RSAPrivateKey = cast(
             RSAPrivateKey,
             serialization.load_pem_private_key(
-                self.private_key.encode("ascii"),
-                password=None,
+                self.private_key.encode("ascii"), password=None
             ),
         )
         signature = private_key_instance.sign(
-            headers_to_sign.encode("utf8"),
-            padding.PKCS1v15(),
-            hashes.SHA256(),
+            data_to_sign, padding.PKCS1v15(), hashes.SHA256()
         )
 
         signature_info = HttpSignatureInfo(
             keyid=str(self.public_key_id),
-            headers=list(request.headers.keys()),
+            headers=headers_to_sign,
             signature=signature,
             algorithm="rsa-sha256",
         )
