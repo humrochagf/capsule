@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
 from httpx import Auth, Request, Response
 from pydantic import HttpUrl
 
-from capsule.security.models import HttpSignatureInfo
+from .models import HttpSignatureInfo
 
 
 def calculate_sha_256_digest(data: bytes) -> str:

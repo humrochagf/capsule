@@ -2,9 +2,9 @@ import asyncio
 
 from rich.console import Console
 
-from capsule import wheke
-from capsule.activitypub.service import get_activitypub_service
-from capsule.database.service import get_database_service
+from . import wheke
+from .activitypub.service import get_activitypub_service
+from .database.service import get_database_service
 
 cli = wheke.create_cli()
 console = Console(highlight=False)

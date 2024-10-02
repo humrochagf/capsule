@@ -1,6 +1,6 @@
-from capsule.activitypub.repositories.actor import ActorRepository
-from capsule.activitypub.repositories.follow import FollowRepository
-from capsule.activitypub.repositories.inbox import InboxRepository
+from .actor import ActorRepository
+from .follow import FollowRepository
+from .inbox import InboxRepository
 
 __all__ = [
     "ActorRepository",
