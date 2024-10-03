@@ -1,7 +1,15 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import FileResponse, JSONResponse
 from loguru import logger
 from starlette.status import (
@@ -129,6 +137,7 @@ async def actor_profile_picture(
 async def actor_inbox(
     activitypub: ActivityPubServiceInjection,
     security: SecurityServiceInjection,
+    background_tasks: BackgroundTasks,
     request: Request,
     username: str,
     activity: Activity,
@@ -151,6 +160,8 @@ async def actor_inbox(
         logger.bind(actor_id=activity.actor).info("New actor, skipping signature check")
 
     await activitypub.create_inbox_entry(InboxEntry(activity=activity))
+
+    background_tasks.add_task(activitypub.sync_inbox_entries)
 
 
 @router.get("/actors/{username}/outbox")

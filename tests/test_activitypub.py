@@ -136,14 +136,13 @@ def test_well_known_webfinger_not_found(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
     acct = f"acct:notfound@{capsule_settings.hostname.host}"
-    response = client.get(f"/.well-known/webfinger?resource={acct}")
 
+    response = client.get(f"/.well-known/webfinger?resource={acct}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_well_known_webfinger_bad_resource(client: TestClient) -> None:
     response = client.get("/.well-known/webfinger")
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -231,7 +230,6 @@ def test_actor(
 
 def test_actor_not_found(client: TestClient) -> None:
     response = client.get("/actors/notfound")
-
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -245,27 +243,21 @@ def test_actor_inbox(
     private_key, public_key = rsa_keypair
     remote_actor = ap_actor("remoteactor", public_key)
 
-    payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
     mocked_response = Response(status_code=200, json=remote_actor)
     respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
 
-    response = client.post("/system/sync", json={})
+    payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
 
+    response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     payload = ap_create_note("remoteactor", "testuser", "Hello for the second time :)")
-
     auth = SignedRequestAuth(
         public_key_id=Url(remote_actor["publicKey"]["id"]),
         private_key=private_key,
     )
-    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
 
+    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
@@ -279,17 +271,12 @@ def test_actor_inbox_bad_signature(
     private_key, public_key = rsa_keypair
     remote_actor = ap_actor("remoteactor2", public_key)
 
-    payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
     mocked_response = Response(status_code=200, json=remote_actor)
     respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
 
-    response = client.post("/system/sync", json={})
+    payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
 
+    response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     payload = ap_create_note("remoteactor2", "testuser", "Bad hello!")
@@ -299,7 +286,6 @@ def test_actor_inbox_bad_signature(
         json=payload,
         headers={"digest": "bad digest"},
     )
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     auth = SignedRequestAuth(
@@ -318,8 +304,8 @@ def test_actor_inbox_bad_signature(
         usegmt=True,
     )
     request.headers["date"] = bad_date
-    response = client.send(request)
 
+    response = client.send(request)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     request = client.build_request(
@@ -331,7 +317,6 @@ def test_actor_inbox_bad_signature(
     del request.headers["signature"]
 
     response = client.send(request)
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     request = client.build_request(
@@ -343,7 +328,6 @@ def test_actor_inbox_bad_signature(
     request.headers["signature"] = "bad=signature"
 
     response = client.send(request)
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     request = client.build_request(
@@ -355,7 +339,6 @@ def test_actor_inbox_bad_signature(
     request.headers["signature"] = 'keyId="id",signature="...",algorithm="unknown"'
 
     response = client.send(request)
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     request = client.build_request(
@@ -367,7 +350,6 @@ def test_actor_inbox_bad_signature(
     request.headers["signature"] = 'keyId="id",signature="..."'
 
     response = client.send(request)
-
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -375,7 +357,6 @@ def test_actor_inbox_not_found(client: TestClient) -> None:
     payload = ap_create_note("remoteactor", "testuser")
 
     response = client.post("/actors/notfound/inbox", json=payload)
-
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -388,7 +369,6 @@ def test_actor_inbox_request_without_actor(
     payload.pop("actor")
 
     response = client.post("/actors/testuser/inbox", json=payload)
-
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -402,34 +382,24 @@ def test_actor_inbox_follow(
     private_key, public_key = rsa_keypair
     remote_actor = ap_actor("followactor", public_key)
 
-    follow = ap_create_follow("followactor", "testuser")
-
-    response = client.post("/actors/testuser/inbox", json=follow)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
     mocked_actor_response = Response(status_code=200, json=remote_actor)
     respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
 
     mocked_inbox_response = Response(status_code=202)
     respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    response = client.post("/system/sync", json={})
+    follow = ap_create_follow("followactor", "testuser")
 
+    response = client.post("/actors/testuser/inbox", json=follow)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     unfollow = ap_create_unfollow("followactor", follow)
-
     auth = SignedRequestAuth(
         public_key_id=Url(remote_actor["publicKey"]["id"]),
         private_key=private_key,
     )
+
     response = client.post("/actors/testuser/inbox", json=unfollow, auth=auth)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
-    response = client.post("/system/sync", json={})
-
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
@@ -443,20 +413,15 @@ def test_actor_inbox_follow_failed_to_accept(
     _, public_key = rsa_keypair
     remote_actor = ap_actor("followerroractor", public_key)
 
-    payload = ap_create_follow("followerroractor", "testuser")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
     mocked_actor_response = Response(status_code=200, json=remote_actor)
     respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
 
     mocked_inbox_response = Response(status_code=500)
     respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    response = client.post("/system/sync", json={})
+    payload = ap_create_follow("followerroractor", "testuser")
 
+    response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
@@ -502,13 +467,11 @@ def test_actor_icon_not_found(
     capsule_settings.username = "testuser"
 
     response = client.get("/actors/testuser/icon")
-
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_system_sync(client: TestClient) -> None:
     response = client.post("/system/sync", json={})
-
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
@@ -522,15 +485,10 @@ def test_system_sync_failed_to_fetch_actor(
     _, public_key = rsa_keypair
     remote_actor = ap_actor("failedfetchactor", public_key)
 
-    payload = ap_create_note("failedfetchactor", "testuser")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
-
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
     mocked_response = Response(status_code=500)
     respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
 
-    response = client.post("/system/sync", json={})
+    payload = ap_create_note("failedfetchactor", "testuser")
 
+    response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
