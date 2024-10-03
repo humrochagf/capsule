@@ -201,6 +201,8 @@ class ActivityPubService:
         ):
             await self.followers.delete_follow(follow.id)
 
+        entry.status = InboxEntryStatus.synced
+
 
 def activitypub_service_factory() -> ActivityPubService:
     database_service = get_database_service()
