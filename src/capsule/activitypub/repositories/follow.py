@@ -25,3 +25,6 @@ class FollowRepository:
             to_jsonable_python(follow),
             upsert=True,
         )
+
+    async def delete_follow(self, follow_id: HttpUrl) -> None:
+        await self.collection.delete_one({"id": {"$eq": str(follow_id)}})

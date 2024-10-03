@@ -13,7 +13,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_actor, ap_create_follow, ap_create_note
+from .utils import ap_actor, ap_create_follow, ap_create_note, ap_create_unfollow
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -399,12 +399,12 @@ def test_actor_inbox_follow(
     rsa_keypair: tuple[str, str],
 ) -> None:
     capsule_settings.username = "testuser"
-    _, public_key = rsa_keypair
+    private_key, public_key = rsa_keypair
     remote_actor = ap_actor("followactor", public_key)
 
-    payload = ap_create_follow("followactor", "testuser")
+    follow = ap_create_follow("followactor", "testuser")
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post("/actors/testuser/inbox", json=follow)
 
     assert response.status_code == status.HTTP_202_ACCEPTED
 
@@ -413,6 +413,20 @@ def test_actor_inbox_follow(
 
     mocked_inbox_response = Response(status_code=202)
     respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
+
+    response = client.post("/system/sync", json={})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    unfollow = ap_create_unfollow("followactor", follow)
+
+    auth = SignedRequestAuth(
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
+        private_key=private_key,
+    )
+    response = client.post("/actors/testuser/inbox", json=unfollow, auth=auth)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
 
     response = client.post("/system/sync", json={})
 

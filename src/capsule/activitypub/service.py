@@ -1,5 +1,6 @@
 import mimetypes
 from collections import defaultdict
+from typing import cast
 
 import httpx
 from loguru import logger
@@ -134,14 +135,18 @@ class ActivityPubService:
                 parsed_entries[InboxEntryStatus.error].append(entry.id)
                 continue
 
-            match entry.activity.type:
-                case "Follow":
+            match entry.activity.type, entry.activity.object_type:
+                case "Follow", _:
                     await self.handle_follow(entry, actor)
-                case unmatched_type:
+                case "Undo", "Follow":
+                    await self.handle_unfollow(entry, actor)
+                case activity_type, object_type:
                     entry.status = InboxEntryStatus.not_implemented
                     logger.warning(
-                        "Activity type {} is not supported yet",
-                        unmatched_type,
+                        "Activity type {} and object type {} pair"
+                        ", is not supported yet",
+                        activity_type,
+                        object_type,
                     )
 
             parsed_entries[entry.status].append(entry.id)
@@ -183,6 +188,18 @@ class ActivityPubService:
 
             await self.followers.upsert_follow(follow)
             entry.status = InboxEntryStatus.synced
+
+    async def handle_unfollow(self, entry: InboxEntry, actor: Actor) -> None:
+        object_data = cast(dict, entry.activity.object)
+        follow_id = Url(object_data.get("id", ""))
+        follow = await self.followers.get_follow(follow_id)
+
+        if (
+            follow is not None
+            and follow.actor == actor.id
+            and object_data.get("actor") == str(actor.id)
+        ):
+            await self.followers.delete_follow(follow.id)
 
 
 def activitypub_service_factory() -> ActivityPubService:

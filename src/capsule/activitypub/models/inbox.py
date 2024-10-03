@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from bson.objectid import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -11,8 +12,15 @@ class Activity(BaseModel):
     id: HttpUrl
     actor: HttpUrl
     type: str
+    object: Any
 
     model_config = ConfigDict(extra="allow")
+
+    @property
+    def object_type(self) -> str | None:
+        if isinstance(self.object, dict):
+            return self.object.get("type", None)
+        return None
 
 
 class InboxEntryStatus(str, Enum):

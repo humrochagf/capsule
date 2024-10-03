@@ -41,6 +41,24 @@ def ap_create_follow(
     }
 
 
+def ap_create_unfollow(
+    from_actor: str,
+    follow: dict,
+    *,
+    from_domain: str = "social.example",
+) -> dict:
+    follow = follow.copy()
+    follow.pop("@context")
+
+    return {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Undo",
+        "id": f"https://{from_domain}/actors/{from_actor}/activity/{uuid4()}",
+        "actor": f"https://{from_domain}/actors/{from_actor}",
+        "object": follow,
+    }
+
+
 def ap_actor(username: str, public_key: str, domain: str = "social.example") -> dict:
     return {
         "@context": [
