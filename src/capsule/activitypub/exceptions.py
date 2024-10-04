@@ -1,0 +1,2 @@
+class EnsureActorError(Exception):
+    pass

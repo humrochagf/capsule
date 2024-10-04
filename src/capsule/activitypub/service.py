@@ -11,6 +11,7 @@ from capsule.database.service import get_database_service
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
+from .exceptions import EnsureActorError
 from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
 
@@ -111,11 +112,7 @@ class ActivityPubService:
 
             return Actor(**response.json())
 
-    async def sync_inbox_entries(self) -> None:
-        async for entry in self.inbox.list_entries(InboxEntryStatus.created):
-            await self.handle_activity(entry)
-
-    async def handle_activity(self, entry: InboxEntry) -> None:
+    async def ensure_actor(self, entry: InboxEntry) -> Actor:
         actor = await self.get_actor(entry.activity.actor)
 
         if not actor:
@@ -123,29 +120,44 @@ class ActivityPubService:
 
             if actor:
                 await self.actors.upsert_actor(actor)
+            else:
+                raise EnsureActorError
 
-        if actor is None:
-            await self.inbox.update_entries_state([entry.id], InboxEntryStatus.error)
-            return None
+        return actor
 
-        match entry.activity.type, entry.activity.object_type:
-            case "Follow", _:
-                await self.handle_follow(entry, actor)
-            case "Undo", "Follow":
-                await self.handle_unfollow(entry, actor)
-            case "Delete", None:
-                await self.handle_delete(entry, actor)
-            case activity_type, object_type:
-                entry.status = InboxEntryStatus.not_implemented
-                logger.warning(
-                    "Activity type {} and object type {} pair" ", is not supported yet",
-                    activity_type,
-                    object_type,
-                )
+    async def sync_inbox_entries(self) -> None:
+        async for entry in self.inbox.list_entries(InboxEntryStatus.created):
+            await self.handle_activity(entry)
 
-        await self.inbox.update_entries_state([entry.id], entry.status)
+    async def handle_activity(self, entry: InboxEntry) -> None:
+        entry_id = entry.id
+        entry_status = entry.status
 
-    async def handle_follow(self, entry: InboxEntry, actor: Actor) -> None:
+        try:
+            match entry.activity.type, entry.activity.object_type:
+                case "Follow", _:
+                    entry_status = await self.handle_follow(entry)
+                case "Undo", "Follow":
+                    entry_status = await self.handle_unfollow(entry)
+                case "Delete", None:
+                    entry_status = await self.handle_delete(entry)
+                case activity_type, object_type:
+                    await self.ensure_actor(entry)
+                    entry_status = InboxEntryStatus.not_implemented
+
+                    logger.warning(
+                        "Activity type {} and object type {} pair"
+                        ", is not supported yet",
+                        activity_type,
+                        object_type,
+                    )
+        except EnsureActorError:
+            entry_status = InboxEntryStatus.error
+
+        await self.inbox.update_entries_state([entry_id], entry_status)
+
+    async def handle_follow(self, entry: InboxEntry) -> InboxEntryStatus:
+        actor = await self.ensure_actor(entry)
         follow = await self.followers.get_follow(entry.activity.id)
 
         if follow is None:
@@ -174,35 +186,40 @@ class ActivityPubService:
                         http_status=response.status_code,
                         http_message=response.text,
                     ).error("Failed to accept follow")
-                    entry.status = InboxEntryStatus.error
-                    return None
+
+                    return InboxEntryStatus.error
 
             await self.followers.upsert_follow(follow)
-            entry.status = InboxEntryStatus.synced
 
-    async def handle_unfollow(self, entry: InboxEntry, actor: Actor) -> None:
+        return InboxEntryStatus.synced
+
+    async def handle_unfollow(self, entry: InboxEntry) -> InboxEntryStatus:
+        actor = await self.get_actor(entry.activity.actor)
         object_data = cast(dict, entry.activity.object)
         follow_id = Url(object_data.get("id", ""))
         follow = await self.followers.get_follow(follow_id)
 
         if (
             follow is not None
+            and actor is not None
             and follow.actor == actor.id
             and object_data.get("actor") == str(actor.id)
         ):
             await self.followers.delete_follow(follow.id)
 
-        entry.status = InboxEntryStatus.synced
+        return InboxEntryStatus.synced
 
-    async def handle_delete(self, entry: InboxEntry, actor: Actor) -> None:
-        if entry.activity.object == str(actor.id):
+    async def handle_delete(self, entry: InboxEntry) -> InboxEntryStatus:
+        actor = await self.get_actor(entry.activity.actor)
+
+        if actor is not None and entry.activity.object == str(actor.id):
             logger.info("Delete triggered {} cleanup", actor.id)
 
             await self.followers.delete_follow_by_actor(actor.id)
             await self.following.delete_follow_by_actor(actor.id)
             await self.actors.delete_actor(actor.id)
 
-        entry.status = InboxEntryStatus.synced
+        return InboxEntryStatus.synced
 
 
 def activitypub_service_factory() -> ActivityPubService:
