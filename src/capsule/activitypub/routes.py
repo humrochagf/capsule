@@ -159,9 +159,9 @@ async def actor_inbox(
     else:
         logger.bind(actor_id=activity.actor).info("New actor, skipping signature check")
 
-    await activitypub.create_inbox_entry(InboxEntry(activity=activity))
+    entry = await activitypub.create_inbox_entry(InboxEntry(activity=activity))
 
-    background_tasks.add_task(activitypub.sync_inbox_entries)
+    background_tasks.add_task(activitypub.handle_activity, entry)
 
 
 @router.get("/actors/{username}/outbox")

@@ -16,8 +16,11 @@ class InboxRepository:
     async def create_indexes(self) -> None:
         await self.collection.create_index("created_at")
 
-    async def create_entry(self, entry: InboxEntry) -> None:
-        await self.collection.insert_one(to_jsonable_python(entry))
+    async def create_entry(self, entry: InboxEntry) -> InboxEntry:
+        result = await self.collection.insert_one(to_jsonable_python(entry))
+        entry.id = result.inserted_id
+
+        return entry
 
     async def list_entries(
         self, status: InboxEntryStatus
@@ -27,9 +30,7 @@ class InboxRepository:
         async for entry in cursor:
             yield InboxEntry(**entry)
 
-    async def update_entries_state(
-        self, ids: list[str], status: InboxEntryStatus
-    ) -> None:
+    async def update_entries_state(self, ids: list, status: InboxEntryStatus) -> None:
         await self.collection.update_many(
             {"_id": {"$in": ids}},
             {"$set": {"status": status}},

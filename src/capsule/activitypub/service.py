@@ -1,5 +1,4 @@
 import mimetypes
-from collections import defaultdict
 from typing import cast
 
 import httpx
@@ -87,8 +86,8 @@ class ActivityPubService:
 
         return webfinger
 
-    async def create_inbox_entry(self, entry: InboxEntry) -> None:
-        await self.inbox.create_entry(entry)
+    async def create_inbox_entry(self, entry: InboxEntry) -> InboxEntry:
+        return await self.inbox.create_entry(entry)
 
     async def fetch_actor_from_remote(self, actor_id: HttpUrl) -> Actor | None:
         auth = SignedRequestAuth(
@@ -113,46 +112,36 @@ class ActivityPubService:
             return Actor(**response.json())
 
     async def sync_inbox_entries(self) -> None:
-        actors: dict[HttpUrl, Actor] = {}
-        parsed_entries: dict[InboxEntryStatus, list] = defaultdict(list)
-
         async for entry in self.inbox.list_entries(InboxEntryStatus.created):
-            actor = actors.get(entry.activity.actor)
+            await self.handle_activity(entry)
 
-            if actor is None:
-                actor = await self.get_actor(entry.activity.actor)
+    async def handle_activity(self, entry: InboxEntry) -> None:
+        actor = await self.get_actor(entry.activity.actor)
 
-                if not actor:
-                    actor = await self.fetch_actor_from_remote(entry.activity.actor)
+        if not actor:
+            actor = await self.fetch_actor_from_remote(entry.activity.actor)
 
-                    if actor:
-                        await self.actors.upsert_actor(actor)
+            if actor:
+                await self.actors.upsert_actor(actor)
 
-                if actor:
-                    actors[entry.activity.actor] = actor
+        if actor is None:
+            await self.inbox.update_entries_state([entry.id], InboxEntryStatus.error)
+            return None
 
-            if actor is None:
-                parsed_entries[InboxEntryStatus.error].append(entry.id)
-                continue
+        match entry.activity.type, entry.activity.object_type:
+            case "Follow", _:
+                await self.handle_follow(entry, actor)
+            case "Undo", "Follow":
+                await self.handle_unfollow(entry, actor)
+            case activity_type, object_type:
+                entry.status = InboxEntryStatus.not_implemented
+                logger.warning(
+                    "Activity type {} and object type {} pair" ", is not supported yet",
+                    activity_type,
+                    object_type,
+                )
 
-            match entry.activity.type, entry.activity.object_type:
-                case "Follow", _:
-                    await self.handle_follow(entry, actor)
-                case "Undo", "Follow":
-                    await self.handle_unfollow(entry, actor)
-                case activity_type, object_type:
-                    entry.status = InboxEntryStatus.not_implemented
-                    logger.warning(
-                        "Activity type {} and object type {} pair"
-                        ", is not supported yet",
-                        activity_type,
-                        object_type,
-                    )
-
-            parsed_entries[entry.status].append(entry.id)
-
-        for status, entries in parsed_entries.items():
-            await self.inbox.update_entries_state(entries, status)
+        await self.inbox.update_entries_state([entry.id], entry.status)
 
     async def handle_follow(self, entry: InboxEntry, actor: Actor) -> None:
         follow = await self.followers.get_follow(entry.activity.id)
