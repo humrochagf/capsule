@@ -453,6 +453,25 @@ def test_actor_inbox_follow_failed_to_accept(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
+def test_inbox_failed_to_fetch_actor(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    _, public_key = rsa_keypair
+    remote_actor = ap_actor("failedfetchactor", public_key)
+
+    mocked_response = Response(status_code=500)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
+    payload = ap_create_note("failedfetchactor", "testuser")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
 def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
     capsule_settings.username = "testuser"
 
@@ -500,23 +519,4 @@ def test_actor_icon_not_found(
 
 def test_system_sync(client: TestClient) -> None:
     response = client.post("/system/sync", json={})
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
-
-def test_system_sync_failed_to_fetch_actor(
-    client: TestClient,
-    capsule_settings: CapsuleSettings,
-    respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
-) -> None:
-    capsule_settings.username = "testuser"
-    _, public_key = rsa_keypair
-    remote_actor = ap_actor("failedfetchactor", public_key)
-
-    mocked_response = Response(status_code=500)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
-
-    payload = ap_create_note("failedfetchactor", "testuser")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
