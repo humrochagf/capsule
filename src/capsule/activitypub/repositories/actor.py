@@ -28,3 +28,6 @@ class ActorRepository:
             to_jsonable_python(actor),
             upsert=True,
         )
+
+    async def delete_actor(self, actor_id: HttpUrl) -> None:
+        await self.collection.delete_one({"id": {"$eq": str(actor_id)}})

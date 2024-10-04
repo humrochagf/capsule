@@ -133,6 +133,8 @@ class ActivityPubService:
                 await self.handle_follow(entry, actor)
             case "Undo", "Follow":
                 await self.handle_unfollow(entry, actor)
+            case "Delete", None:
+                await self.handle_delete(entry, actor)
             case activity_type, object_type:
                 entry.status = InboxEntryStatus.not_implemented
                 logger.warning(
@@ -189,6 +191,16 @@ class ActivityPubService:
             and object_data.get("actor") == str(actor.id)
         ):
             await self.followers.delete_follow(follow.id)
+
+        entry.status = InboxEntryStatus.synced
+
+    async def handle_delete(self, entry: InboxEntry, actor: Actor) -> None:
+        if entry.activity.object == str(actor.id):
+            logger.info("Delete triggered {} cleanup", actor.id)
+
+            await self.followers.delete_follow_by_actor(actor.id)
+            await self.following.delete_follow_by_actor(actor.id)
+            await self.actors.delete_actor(actor.id)
 
         entry.status = InboxEntryStatus.synced
 

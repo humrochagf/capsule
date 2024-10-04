@@ -13,7 +13,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_actor, ap_create_follow, ap_create_note, ap_create_unfollow
+from .utils import ap_actor, ap_create_note, ap_delete_actor, ap_follow, ap_unfollow
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -261,6 +261,34 @@ def test_actor_inbox(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
+def test_inbox_delete_actor(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+    respx_mock: MockRouter,
+    rsa_keypair: tuple[str, str],
+) -> None:
+    capsule_settings.username = "testuser"
+    private_key, public_key = rsa_keypair
+    remote_actor = ap_actor("deleteactor", public_key)
+
+    mocked_response = Response(status_code=200, json=remote_actor)
+    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+
+    payload = ap_create_note("deleteactor", "testuser")
+
+    response = client.post("/actors/testuser/inbox", json=payload)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = ap_delete_actor("deleteactor")
+    auth = SignedRequestAuth(
+        public_key_id=Url(remote_actor["publicKey"]["id"]),
+        private_key=private_key,
+    )
+
+    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
 def test_actor_inbox_bad_signature(
     client: TestClient,
     capsule_settings: CapsuleSettings,
@@ -388,12 +416,12 @@ def test_actor_inbox_follow(
     mocked_inbox_response = Response(status_code=202)
     respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    follow = ap_create_follow("followactor", "testuser")
+    follow = ap_follow("followactor", "testuser")
 
     response = client.post("/actors/testuser/inbox", json=follow)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    unfollow = ap_create_unfollow("followactor", follow)
+    unfollow = ap_unfollow("followactor", follow)
     auth = SignedRequestAuth(
         public_key_id=Url(remote_actor["publicKey"]["id"]),
         private_key=private_key,
@@ -419,7 +447,7 @@ def test_actor_inbox_follow_failed_to_accept(
     mocked_inbox_response = Response(status_code=500)
     respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    payload = ap_create_follow("followerroractor", "testuser")
+    payload = ap_follow("followerroractor", "testuser")
 
     response = client.post("/actors/testuser/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED

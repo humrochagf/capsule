@@ -28,3 +28,6 @@ class FollowRepository:
 
     async def delete_follow(self, follow_id: HttpUrl) -> None:
         await self.collection.delete_one({"id": {"$eq": str(follow_id)}})
+
+    async def delete_follow_by_actor(self, actor_id: HttpUrl) -> None:
+        await self.collection.delete_one({"actor": {"$eq": str(actor_id)}})

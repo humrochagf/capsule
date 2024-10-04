@@ -25,7 +25,7 @@ def ap_create_note(
     }
 
 
-def ap_create_follow(
+def ap_follow(
     from_actor: str,
     to_actor: str,
     *,
@@ -41,7 +41,7 @@ def ap_create_follow(
     }
 
 
-def ap_create_unfollow(
+def ap_unfollow(
     from_actor: str,
     follow: dict,
     *,
@@ -86,4 +86,18 @@ def ap_actor(username: str, public_key: str, domain: str = "social.example") -> 
             "mediaType": "image/jpeg",
             "url": f"https://{domain}/actors/{username}/icon",
         },
+    }
+
+
+def ap_delete_actor(
+    from_actor: str,
+    *,
+    from_domain: str = "social.example",
+) -> dict:
+    return {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Delete",
+        "id": f"https://{from_domain}/actors/{from_actor}/activity/{uuid4()}",
+        "actor": f"https://{from_domain}/actors/{from_actor}",
+        "object": f"https://{from_domain}/actors/{from_actor}",
     }
