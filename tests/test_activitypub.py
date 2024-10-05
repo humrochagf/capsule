@@ -13,7 +13,7 @@ from capsule.__about__ import __version__
 from capsule.security.utils import RSAKeyPair, SignedRequestAuth
 from capsule.settings import CapsuleSettings
 
-from .utils import ap_actor, ap_create_note, ap_delete_actor, ap_follow, ap_unfollow
+from .utils import ap_create_note, ap_delete_actor, ap_follow, ap_unfollow
 
 
 @pytest.mark.parametrize("hostname", ["http://example.com", "https://example.com"])
@@ -236,95 +236,101 @@ def test_actor_not_found(client: TestClient) -> None:
 def test_actor_inbox(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    private_key, public_key = rsa_keypair
-    remote_actor = ap_actor("remoteactor", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, keys = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
-    mocked_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+    mocked_response = Response(status_code=200, json=actor)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_response)
 
-    payload = ap_create_note("remoteactor", "testuser", "Hello for the first time :)")
-
-    response = client.post("/actors/testuser/inbox", json=payload)
-    assert response.status_code == status.HTTP_202_ACCEPTED
-
-    payload = ap_create_note("remoteactor", "testuser", "Hello for the second time :)")
-    auth = SignedRequestAuth(
-        public_key_id=Url(remote_actor["publicKey"]["id"]),
-        private_key=private_key,
+    payload = ap_create_note(
+        actor_username, instance_username, "Hello for the first time :)"
     )
 
-    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
+    response = client.post(instance_inbox, json=payload)
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+    payload = ap_create_note(
+        actor_username, instance_username, "Hello for the second time :)"
+    )
+    auth = SignedRequestAuth(
+        public_key_id=Url(actor["publicKey"]["id"]),
+        private_key=keys.private_key,
+    )
+
+    response = client.post(instance_inbox, json=payload, auth=auth)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 def test_inbox_delete_actor(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    private_key, public_key = rsa_keypair
-    remote_actor = ap_actor("deleteactor", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, keys = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
-    mocked_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+    mocked_response = Response(status_code=200, json=actor)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_response)
 
-    payload = ap_create_note("deleteactor", "testuser")
+    payload = ap_create_note(actor_username, instance_username)
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post(instance_inbox, json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    payload = ap_delete_actor("deleteactor")
+    payload = ap_delete_actor(actor_username)
     auth = SignedRequestAuth(
-        public_key_id=Url(remote_actor["publicKey"]["id"]),
-        private_key=private_key,
+        public_key_id=Url(actor["publicKey"]["id"]),
+        private_key=keys.private_key,
     )
 
-    response = client.post("/actors/testuser/inbox", json=payload, auth=auth)
+    response = client.post(instance_inbox, json=payload, auth=auth)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 def test_actor_inbox_bad_signature(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    private_key, public_key = rsa_keypair
-    remote_actor = ap_actor("remoteactor2", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, keys = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
-    mocked_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+    mocked_response = Response(status_code=200, json=actor)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_response)
 
-    payload = ap_create_note("remoteactor2", "testuser", "Hello for the first time :)")
+    payload = ap_create_note(
+        actor_username, instance_username, "Hello for the first time :)"
+    )
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post(instance_inbox, json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    payload = ap_create_note("remoteactor2", "testuser", "Bad hello!")
+    payload = ap_create_note(actor_username, instance_username, "Bad hello!")
 
     response = client.post(
-        "/actors/testuser/inbox",
-        json=payload,
-        headers={"digest": "bad digest"},
+        instance_inbox, json=payload, headers={"digest": "bad digest"}
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     auth = SignedRequestAuth(
-        public_key_id=Url(remote_actor["publicKey"]["id"]),
-        private_key=private_key,
+        public_key_id=Url(actor["publicKey"]["id"]),
+        private_key=keys.private_key,
     )
-    request = client.build_request(
-        "post",
-        "/actors/testuser/inbox",
-        json=payload,
-    )
+    request = client.build_request("post", instance_inbox, json=payload)
     auth.sign_request(request)
 
     bad_date = format_datetime(
@@ -336,11 +342,7 @@ def test_actor_inbox_bad_signature(
     response = client.send(request)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    request = client.build_request(
-        "post",
-        "/actors/testuser/inbox",
-        json=payload,
-    )
+    request = client.build_request("post", instance_inbox, json=payload)
     auth.sign_request(request)
     del request.headers["signature"]
 
@@ -349,7 +351,7 @@ def test_actor_inbox_bad_signature(
 
     request = client.build_request(
         "post",
-        "/actors/testuser/inbox",
+        instance_inbox,
         json=payload,
     )
     auth.sign_request(request)
@@ -360,7 +362,7 @@ def test_actor_inbox_bad_signature(
 
     request = client.build_request(
         "post",
-        "/actors/testuser/inbox",
+        instance_inbox,
         json=payload,
     )
     auth.sign_request(request)
@@ -371,7 +373,7 @@ def test_actor_inbox_bad_signature(
 
     request = client.build_request(
         "post",
-        "/actors/testuser/inbox",
+        instance_inbox,
         json=payload,
     )
     auth.sign_request(request)
@@ -403,72 +405,76 @@ def test_actor_inbox_request_without_actor(
 def test_actor_inbox_follow(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    private_key, public_key = rsa_keypair
-    remote_actor = ap_actor("followactor", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, keys = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
-    mocked_actor_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
-
+    mocked_actor_response = Response(status_code=200, json=actor)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_actor_response)
     mocked_inbox_response = Response(status_code=202)
-    respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
+    respx_mock.post(actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    follow = ap_follow("followactor", "testuser")
+    follow = ap_follow(actor_username, instance_username)
 
-    response = client.post("/actors/testuser/inbox", json=follow)
+    response = client.post(instance_inbox, json=follow)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
-    unfollow = ap_unfollow("followactor", follow)
+    unfollow = ap_unfollow(actor_username, follow)
     auth = SignedRequestAuth(
-        public_key_id=Url(remote_actor["publicKey"]["id"]),
-        private_key=private_key,
+        public_key_id=Url(actor["publicKey"]["id"]),
+        private_key=keys.private_key,
     )
 
-    response = client.post("/actors/testuser/inbox", json=unfollow, auth=auth)
+    response = client.post(instance_inbox, json=unfollow, auth=auth)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 def test_actor_inbox_follow_failed_to_accept(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    _, public_key = rsa_keypair
-    remote_actor = ap_actor("followerroractor", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, _ = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
-    mocked_actor_response = Response(status_code=200, json=remote_actor)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_actor_response)
-
+    mocked_actor_response = Response(status_code=200, json=actor)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_actor_response)
     mocked_inbox_response = Response(status_code=500)
-    respx_mock.post(remote_actor["inbox"]).mock(return_value=mocked_inbox_response)
+    respx_mock.post(actor["inbox"]).mock(return_value=mocked_inbox_response)
 
-    payload = ap_follow("followerroractor", "testuser")
+    payload = ap_follow(actor_username, instance_username)
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post(instance_inbox, json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 def test_inbox_failed_to_fetch_actor(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
-    rsa_keypair: tuple[str, str],
 ) -> None:
-    capsule_settings.username = "testuser"
-    _, public_key = rsa_keypair
-    remote_actor = ap_actor("failedfetchactor", public_key)
+    instance_username = "testuser"
+    instance_inbox = f"/actors/{instance_username}/inbox"
+    capsule_settings.username = instance_username
+    actor, _ = actor_and_keypair
+    actor_username = actor["preferredUsername"]
 
     mocked_response = Response(status_code=500)
-    respx_mock.get(remote_actor["id"]).mock(return_value=mocked_response)
+    respx_mock.get(actor["id"]).mock(return_value=mocked_response)
 
-    payload = ap_create_note("failedfetchactor", "testuser")
+    payload = ap_create_note(actor_username, instance_username)
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post(instance_inbox, json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
