@@ -5,6 +5,7 @@ from pydantic_core import to_jsonable_python
 
 from capsule.activitypub.models import InboxEntry, InboxEntryStatus
 from capsule.database.service import DatabaseService
+from capsule.utils import utc_now
 
 
 class InboxRepository:
@@ -31,9 +32,11 @@ class InboxRepository:
             yield InboxEntry(**entry)
 
     async def update_entries_state(self, ids: list, status: InboxEntryStatus) -> None:
+        data = {"status": status, "updated_at": utc_now()}
+
         await self.collection.update_many(
             {"_id": {"$in": ids}},
-            {"$set": {"status": status}},
+            {"$set": to_jsonable_python(data)},
         )
 
     async def delete_entries(self) -> None:
