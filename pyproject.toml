@@ -49,6 +49,7 @@ path = "src/capsule/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
+  "coolname",
   "isort",
   "mypy",
   "pytest",
@@ -100,6 +101,12 @@ exclude = """
   | env
   | venv
 """
+
+[[tool.mypy.overrides]]
+module = [
+  "coolname",
+]
+ignore_missing_imports = true
 
 [tool.isort]
 profile = "black"

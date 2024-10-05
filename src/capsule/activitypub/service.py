@@ -125,9 +125,13 @@ class ActivityPubService:
 
         return actor
 
-    async def sync_inbox_entries(self) -> None:
-        async for entry in self.inbox.list_entries(InboxEntryStatus.created):
-            await self.handle_activity(entry)
+    async def cleanup_inbox_entries(self) -> None:
+        await self.inbox.delete_entries()
+
+    async def sync_inbox_entries(self, status: InboxEntryStatus) -> None:
+        if status != InboxEntryStatus.synced:
+            async for entry in self.inbox.list_entries(status):
+                await self.handle_activity(entry)
 
     async def handle_activity(self, entry: InboxEntry) -> None:
         entry_id = entry.id

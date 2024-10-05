@@ -20,6 +20,7 @@ from starlette.status import (
 from starlette.templating import Jinja2Templates
 
 from capsule.__about__ import __version__
+from capsule.activitypub.models.inbox import InboxEntryStatus
 from capsule.security.exception import VerificationBadFormatError, VerificationError
 from capsule.security.service import SecurityService, get_security_service
 from capsule.settings import get_capsule_settings
@@ -179,6 +180,14 @@ async def actor_outbox(service: ActivityPubServiceInjection, username: str) -> d
     }
 
 
-@router.post("/system/sync", status_code=status.HTTP_202_ACCEPTED)
-async def system_sync(service: ActivityPubServiceInjection) -> None:
-    await service.sync_inbox_entries()
+@router.post("/system/inbox/sync", status_code=status.HTTP_202_ACCEPTED)
+async def system_inbox_sync(
+    service: ActivityPubServiceInjection,
+    status: InboxEntryStatus = InboxEntryStatus.created,
+) -> None:
+    await service.sync_inbox_entries(status)
+
+
+@router.post("/system/inbox/cleanup", status_code=status.HTTP_202_ACCEPTED)
+async def system_inbox_cleanup(service: ActivityPubServiceInjection) -> None:
+    await service.cleanup_inbox_entries()

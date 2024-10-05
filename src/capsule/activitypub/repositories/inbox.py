@@ -35,3 +35,6 @@ class InboxRepository:
             {"_id": {"$in": ids}},
             {"$set": {"status": status}},
         )
+
+    async def delete_entries(self) -> None:
+        await self.collection.delete_many({})
