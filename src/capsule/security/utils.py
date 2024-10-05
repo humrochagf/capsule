@@ -1,4 +1,5 @@
 import base64
+from collections import namedtuple
 from collections.abc import Generator
 from datetime import datetime, timezone
 from email.utils import format_datetime
@@ -15,6 +16,8 @@ from pydantic import HttpUrl
 
 from .models import HttpSignatureInfo
 
+RSAKeyPair = namedtuple("RSAKeyPair", ["private_key", "public_key"])
+
 
 def calculate_sha_256_digest(data: bytes) -> str:
     digest = hashes.Hash(hashes.SHA256())
@@ -23,7 +26,7 @@ def calculate_sha_256_digest(data: bytes) -> str:
     return "SHA-256=" + base64.b64encode(digest.finalize()).decode("ascii")
 
 
-def generate_rsa_keypair() -> tuple[str, str]:
+def generate_rsa_keypair() -> RSAKeyPair:
     private_key = generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -44,7 +47,7 @@ def generate_rsa_keypair() -> tuple[str, str]:
         .decode("ascii")
     )
 
-    return private_key_serialized, public_key_serialized
+    return RSAKeyPair(private_key_serialized, public_key_serialized)
 
 
 class SignedRequestAuth(Auth):

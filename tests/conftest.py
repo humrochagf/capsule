@@ -7,7 +7,7 @@ from typer import Typer
 
 from capsule import app
 from capsule.__main__ import cli as capsule_cli
-from capsule.security.utils import generate_rsa_keypair
+from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings, get_capsule_settings
 from tests.utils import ap_actor
 
@@ -43,6 +43,5 @@ def rsa_keypair() -> tuple[str, str]:
 
 
 @pytest.fixture
-def actor_and_key(rsa_keypair: tuple[str, str]) -> tuple[dict, str]:
-    private_key, public_key = rsa_keypair
-    return ap_actor("_".join(generate(2)), public_key), private_key
+def actor_and_keypair(rsa_keypair: RSAKeyPair) -> tuple[dict, RSAKeyPair]:
+    return ap_actor("_".join(generate(2)), rsa_keypair.public_key), rsa_keypair
