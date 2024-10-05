@@ -9,7 +9,7 @@ from capsule.settings import CapsuleSettings
 from tests.utils import ap_follow, ap_unfollow
 
 
-def test_actor_inbox_follow(
+def test_follow(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],
@@ -41,7 +41,7 @@ def test_actor_inbox_follow(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
-def test_actor_inbox_follow_failed_to_accept(
+def test_follow_accept_failed(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],

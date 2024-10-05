@@ -9,7 +9,7 @@ from capsule.settings import CapsuleSettings
 from tests.utils import ap_create_note, ap_delete_actor
 
 
-def test_inbox_delete_actor(
+def test_delete_actor(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],

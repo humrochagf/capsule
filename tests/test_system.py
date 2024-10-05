@@ -8,7 +8,7 @@ from capsule.settings import CapsuleSettings
 from tests.utils import ap_follow
 
 
-def test_system_sync_failed(
+def test_system_inbox_sync(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],

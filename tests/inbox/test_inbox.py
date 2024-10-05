@@ -12,7 +12,7 @@ from capsule.settings import CapsuleSettings
 from tests.utils import ap_create_note
 
 
-def test_actor_inbox(
+def test_inbox(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],
@@ -46,7 +46,7 @@ def test_actor_inbox(
     assert response.status_code == status.HTTP_202_ACCEPTED
 
 
-def test_actor_inbox_bad_signature(
+def test_inbox_bad_signature(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],
@@ -132,14 +132,14 @@ def test_actor_inbox_bad_signature(
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_actor_inbox_not_found(client: TestClient) -> None:
+def test_inbox_not_found(client: TestClient) -> None:
     payload = ap_create_note("remoteactor", "testuser")
 
     response = client.post("/actors/notfound/inbox", json=payload)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_actor_inbox_request_without_actor(
+def test_inbox_request_without_actor(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
     capsule_settings.username = "testuser"
