@@ -3,7 +3,7 @@ from collections.abc import Generator
 import pytest
 from coolname import generate
 from fastapi.testclient import TestClient
-from typer import Typer
+from typer.testing import CliRunner
 
 from capsule import app
 from capsule.__main__ import cli as capsule_cli
@@ -12,14 +12,24 @@ from capsule.settings import CapsuleSettings, get_capsule_settings
 from tests.utils import ap_actor
 
 
+@pytest.fixture(autouse=True, scope="session")
+def session_setup_and_teardown() -> Generator:
+    runner = CliRunner()
+
+    # setup
+    result = runner.invoke(capsule_cli, ["syncdb"])
+    assert result.exit_code == 0
+
+    yield
+
+    # teardown
+    result = runner.invoke(capsule_cli, ["dropdb"])
+    assert result.exit_code == 0
+
+
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
-
-
-@pytest.fixture
-def cli() -> Typer:
-    return capsule_cli
 
 
 @pytest.fixture

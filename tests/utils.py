@@ -60,6 +60,7 @@ def ap_unfollow(
 
 
 def ap_actor(username: str, public_key: str, domain: str = "social.example") -> dict:
+    name = username.replace("_", " ").title()
     return {
         "@context": [
             "https://www.w3.org/ns/activitystreams",
@@ -70,9 +71,9 @@ def ap_actor(username: str, public_key: str, domain: str = "social.example") -> 
         ],
         "id": f"https://{domain}/actors/{username}",
         "type": "Person",
-        "name": f"{username.capitalize()} Name",
+        "name": f"{name} Name",
         "preferredUsername": username,
-        "summary": f"{username.capitalize()} Summary",
+        "summary": f"{name} Summary",
         "inbox": f"https://{domain}/actors/{username}/inbox",
         "outbox": f"https://{domain}/actors/{username}/outbox",
         "manuallyApprovesFollowers": False,
