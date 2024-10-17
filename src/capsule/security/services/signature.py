@@ -9,12 +9,12 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import Request
 from wheke import get_service
 
-from .exception import VerificationBadFormatError, VerificationError
-from .models import HttpSignatureInfo
-from .utils import calculate_sha_256_digest
+from ..exception import VerificationBadFormatError, VerificationError
+from ..models import HttpSignatureInfo
+from ..utils import calculate_sha_256_digest
 
 
-class SecurityService:
+class SignatureService:
     async def verify_request(self, request: Request, public_key: str) -> None:
         if "digest" in request.headers:
             expected_digest = calculate_sha_256_digest(await request.body())
@@ -77,9 +77,9 @@ class SecurityService:
             raise VerificationError(msg) from exc
 
 
-def security_service_factory() -> SecurityService:
-    return SecurityService()
+def signature_service_factory() -> SignatureService:
+    return SignatureService()
 
 
-def get_security_service() -> SecurityService:
-    return get_service(SecurityService)
+def get_signature_service() -> SignatureService:
+    return get_service(SignatureService)

@@ -22,7 +22,7 @@ from starlette.templating import Jinja2Templates
 from capsule.__about__ import __version__
 from capsule.activitypub.models.inbox import InboxEntryStatus
 from capsule.security.exception import VerificationBadFormatError, VerificationError
-from capsule.security.service import SecurityService, get_security_service
+from capsule.security.services import SignatureService, get_signature_service
 from capsule.settings import get_capsule_settings
 
 from .models import Activity, Actor, InboxEntry
@@ -35,7 +35,7 @@ ActivityPubServiceInjection = Annotated[
     ActivityPubService, Depends(get_activitypub_service)
 ]
 
-SecurityServiceInjection = Annotated[SecurityService, Depends(get_security_service)]
+SignatureServiceInjection = Annotated[SignatureService, Depends(get_signature_service)]
 
 
 class ActivityJSONResponse(JSONResponse):
@@ -137,7 +137,7 @@ async def actor_profile_picture(
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def actor_inbox(
     activitypub: ActivityPubServiceInjection,
-    security: SecurityServiceInjection,
+    signature: SignatureServiceInjection,
     background_tasks: BackgroundTasks,
     request: Request,
     username: str,
@@ -152,7 +152,7 @@ async def actor_inbox(
 
     if actor:
         try:
-            await security.verify_request(request, actor.public_key.public_key_pem)
+            await signature.verify_request(request, actor.public_key.public_key_pem)
         except VerificationBadFormatError as exc:
             raise HTTPException(HTTP_400_BAD_REQUEST) from exc
         except VerificationError as exc:

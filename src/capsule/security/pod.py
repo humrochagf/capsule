@@ -1,8 +1,18 @@
 from wheke import Pod, ServiceConfig
 
-from .service import SecurityService, security_service_factory
+from .routes import router
+from .services import (
+    AuthService,
+    SignatureService,
+    auth_service_factory,
+    signature_service_factory,
+)
 
 security_pod = Pod(
     "security",
-    services=[ServiceConfig(SecurityService, security_service_factory)],
+    services=[
+        ServiceConfig(AuthService, auth_service_factory),
+        ServiceConfig(SignatureService, signature_service_factory),
+    ],
+    router=router,
 )
