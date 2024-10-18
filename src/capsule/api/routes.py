@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer
 
-from .models import App, CreateAppRequest
+from capsule.security.models import App, CreateAppRequest
+
 from .service import APIService, get_api_service
 from .utils import MultiContentTypeRoute
 

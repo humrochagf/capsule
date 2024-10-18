@@ -19,7 +19,11 @@ from pydantic import HttpUrl
 RSAKeyPair = namedtuple("RSAKeyPair", ["private_key", "public_key"])
 
 
-def generate_token() -> str:
+def client_id() -> str:
+    return "cp-" + secrets.token_urlsafe(40)
+
+
+def secret_token() -> str:
     return secrets.token_urlsafe(43)
 
 
