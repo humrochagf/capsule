@@ -16,9 +16,12 @@ router = APIRouter(tags=["security"])
 async def token_auth(
     service: AuthServiceInjection, auth_form: OAuth2FormInjection
 ) -> dict:
-    token = await service.token_auth(auth_form)
-
-    if token is None:
+    if not service.authenticate_user(auth_form):
         raise HTTPException(HTTP_400_BAD_REQUEST, detail="Invalid credentials")
 
-    return token
+    return {
+        "access_token": "token",
+        "token_type": "Bearer",
+        "scope": "read write follow push",
+        "created_at": 1573979017,
+    }

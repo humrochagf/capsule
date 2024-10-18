@@ -1,39 +1,16 @@
-from base64 import b64decode, b64encode
+from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from capsule.utils import utc_now
+
+from .utils import generate_token
 
 
-class HttpSignatureInfo(BaseModel):
-    algorithm: str
-    headers: list[str]
-    signature: bytes
-    keyid: str
+class Token(BaseModel):
+    app_id: UUID
+    scopes: str
+    token: str = Field(default_factory=generate_token)
 
-    @property
-    def headers_str(self) -> str:
-        return " ".join(header.lower() for header in self.headers)
-
-    @property
-    def compiled_signature(self) -> str:
-        return (
-            f'keyId="{self.keyid}"'
-            f',headers="{self.headers_str}"'
-            f',signature="{b64encode(self.signature).decode("ascii")}"'
-            f',algorithm="{self.algorithm}"'
-        )
-
-    @classmethod
-    def from_compiled_signature(cls, signature: str) -> "HttpSignatureInfo":
-        parts = {}
-
-        for part in signature.split(","):
-            key, value = part.split("=", 1)
-            value = value.strip('"')
-            parts[key.lower()] = value
-
-        return HttpSignatureInfo(
-            keyid=parts["keyid"],
-            signature=b64decode(parts["signature"]),
-            headers=parts.get("headers", "").split(),
-            algorithm=parts.get("algorithm", "rsa-sha256"),
-        )
+    created_at: datetime = Field(default_factory=utc_now)

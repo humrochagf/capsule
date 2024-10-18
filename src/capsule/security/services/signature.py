@@ -10,8 +10,7 @@ from fastapi import Request
 from wheke import get_service
 
 from ..exception import VerificationBadFormatError, VerificationError
-from ..models import HttpSignatureInfo
-from ..utils import calculate_sha_256_digest
+from ..utils import HttpSignatureInfo, calculate_sha_256_digest
 
 
 class SignatureService:

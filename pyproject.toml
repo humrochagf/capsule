@@ -32,6 +32,7 @@ dependencies = [
   "jinja2",
   "loguru",
   "motor",
+  "passlib[bcrypt]",
   "python-multipart",
   "uvicorn[standard]",
   "wheke",

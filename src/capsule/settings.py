@@ -15,6 +15,7 @@ class CapsuleSettings(WhekeSettings):
     database_name: str = "capsule"
 
     username: str = ""
+    password: str = ""
     name: str = ""
     summary: str = ""
     profile_image: FilePath | None = None
