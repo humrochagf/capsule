@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,12 +17,26 @@ router = APIRouter(tags=["security"])
 async def token_auth(
     service: AuthServiceInjection, auth_form: OAuth2FormInjection
 ) -> dict:
-    if not service.authenticate_user(auth_form):
+    if not await service.authenticate_user(auth_form):
         raise HTTPException(HTTP_400_BAD_REQUEST, detail="Invalid credentials")
 
-    return {
-        "access_token": "token",
-        "token_type": "Bearer",
-        "scope": "read write follow push",
-        "created_at": 1573979017,
-    }
+    match auth_form.grant_type:
+        case "client_credentials":
+            # individual client credential token unsupported
+            # returning fixed token for apps interacting with
+            # public apis
+            return {
+                "access_token": "__app__",
+                "token_type": "Bearer",
+                "scope": "read",
+                "created_at": int(time.time()),
+            }
+        case "authorization_code":
+            return {
+                "access_token": "token",
+                "token_type": "Bearer",
+                "scope": "read write follow push",
+                "created_at": 1573979017,
+            }
+        case _:
+            raise HTTPException(HTTP_400_BAD_REQUEST, detail="Invalid grant type")
