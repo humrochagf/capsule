@@ -1,4 +1,3 @@
-from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from wheke import get_service
 
@@ -50,11 +49,10 @@ class AuthService:
     def get_password_hash(self, password: str) -> str:
         return self.crypt_context.hash(password)
 
-    async def authenticate_user(self, auth_form: OAuth2PasswordRequestForm) -> bool:
-        if auth_form.username != self.settings.username:
-            return False
-
-        return self.verify_password(auth_form.password, self.settings.password)
+    async def authenticate_user(self, username: str, password: str) -> bool:
+        return username == self.settings.username and self.verify_password(
+            password, self.settings.password
+        )
 
 
 def auth_service_factory() -> AuthService:
