@@ -12,6 +12,13 @@ OAuth2FormInjection = Annotated[OAuth2AuthorizationCodeForm, Depends()]
 router = APIRouter(tags=["security"])
 
 
+@router.post("/oauth/authorize")
+async def authorize_app(
+    service: AuthServiceInjection, auth_form: OAuth2FormInjection
+) -> dict:
+    return {}
+
+
 @router.post("/oauth/token")
 async def token_auth(
     service: AuthServiceInjection, auth_form: OAuth2FormInjection

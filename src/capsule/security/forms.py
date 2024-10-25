@@ -5,6 +5,13 @@ from fastapi import Form
 from pydantic import AnyUrl
 
 
+class AuthorizationForm:
+    client_id: str
+    scope: str
+    redirect_uri: AnyUrl
+    response_type: str
+
+
 class GrantType(str, Enum):
     authorization_code = "authorization_code"
     client_credentials = "client_credentials"
