@@ -35,7 +35,7 @@ def client() -> TestClient:
 @pytest.fixture
 def capsule_settings(rsa_keypair: tuple[str, str]) -> CapsuleSettings:
     settings = get_capsule_settings()
-    settings.model_config["env_file"] = (".env", ".env.test")
+    settings.model_config["env_file"] = (".env", ".test.env")
     CapsuleSettings.__init__(settings)
 
     settings.private_key, settings.public_key = rsa_keypair
