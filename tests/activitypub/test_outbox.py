@@ -5,9 +5,9 @@ from capsule.settings import CapsuleSettings
 
 
 def test_actor_outbox(client: TestClient, capsule_settings: CapsuleSettings) -> None:
-    capsule_settings.username = "testuser"
+    instance_username = capsule_settings.username
 
-    response = client.get("/actors/testuser/outbox")
+    response = client.get(f"/actors/{instance_username}/outbox")
 
     assert response.status_code == status.HTTP_200_OK
 

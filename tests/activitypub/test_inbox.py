@@ -18,9 +18,8 @@ def test_inbox(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    instance_username = "testuser"
+    instance_username = capsule_settings.username
     instance_inbox = f"/actors/{instance_username}/inbox"
-    capsule_settings.username = instance_username
     actor, keys = actor_and_keypair
     actor_username = actor["preferredUsername"]
 
@@ -52,9 +51,8 @@ def test_inbox_bad_signature(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    instance_username = "testuser"
+    instance_username = capsule_settings.username
     instance_inbox = f"/actors/{instance_username}/inbox"
-    capsule_settings.username = instance_username
     actor, keys = actor_and_keypair
     actor_username = actor["preferredUsername"]
 
@@ -133,7 +131,7 @@ def test_inbox_bad_signature(
 
 
 def test_inbox_not_found(client: TestClient) -> None:
-    payload = ap_create_note("remoteactor", "testuser")
+    payload = ap_create_note("remoteactor", "notfound")
 
     response = client.post("/actors/notfound/inbox", json=payload)
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -142,12 +140,12 @@ def test_inbox_not_found(client: TestClient) -> None:
 def test_inbox_request_without_actor(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
-    capsule_settings.username = "testuser"
+    instance_username = capsule_settings.username
 
-    payload = ap_create_note("remoteactor", "testuser")
+    payload = ap_create_note("remoteactor", instance_username)
     payload.pop("actor")
 
-    response = client.post("/actors/testuser/inbox", json=payload)
+    response = client.post(f"/actors/{instance_username}/inbox", json=payload)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -157,9 +155,8 @@ def test_inbox_failed_to_fetch_actor(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    instance_username = "testuser"
+    instance_username = capsule_settings.username
     instance_inbox = f"/actors/{instance_username}/inbox"
-    capsule_settings.username = instance_username
     actor, _ = actor_and_keypair
     actor_username = actor["preferredUsername"]
 

@@ -72,13 +72,12 @@ def test_actor_not_found(client: TestClient) -> None:
 def test_actor_icon(
     client: TestClient, capsule_settings: CapsuleSettings, tmp_path: Path
 ) -> None:
-    capsule_settings.username = "testuser"
-
+    instance_username = capsule_settings.username
     profile_image = tmp_path / "test.jpg"
     profile_image.touch()
     capsule_settings.profile_image = profile_image
 
-    response = client.get("/actors/testuser/icon")
+    response = client.get(f"/actors/{instance_username}/icon")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["Content-Type"] == "image/jpeg"
@@ -87,7 +86,7 @@ def test_actor_icon(
 def test_actor_icon_not_found(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
-    capsule_settings.username = "testuser"
+    instance_username = capsule_settings.username
 
-    response = client.get("/actors/testuser/icon")
+    response = client.get(f"/actors/{instance_username}/icon")
     assert response.status_code == status.HTTP_404_NOT_FOUND
