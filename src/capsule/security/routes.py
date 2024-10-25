@@ -13,9 +13,7 @@ router = APIRouter(tags=["security"])
 
 
 @router.post("/oauth/authorize")
-async def authorize_app(
-    service: AuthServiceInjection, auth_form: OAuth2FormInjection
-) -> dict:
+async def authorize_app(service: AuthServiceInjection) -> dict:
     return {}
 
 
