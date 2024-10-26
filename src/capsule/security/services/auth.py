@@ -1,4 +1,4 @@
-from passlib.context import CryptContext
+import bcrypt
 from wheke import get_service
 
 from capsule.database.service import get_database_service
@@ -10,7 +10,6 @@ from ..repositories import AppRepository, TokenRepository
 
 class AuthService:
     settings: CapsuleSettings
-    crypt_context: CryptContext
 
     apps: AppRepository
     tokens: TokenRepository
@@ -22,7 +21,6 @@ class AuthService:
         token_repository: TokenRepository,
     ) -> None:
         self.settings = get_capsule_settings()
-        self.crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
         self.apps = app_repository
         self.tokens = token_repository
@@ -44,12 +42,14 @@ class AuthService:
         return app
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        return self.crypt_context.verify(plain_password, hashed_password)
+        return bcrypt.checkpw(
+            plain_password.encode("utf8"), hashed_password.encode("utf8")
+        )
 
     def get_password_hash(self, password: str) -> str:
-        return self.crypt_context.hash(password)
+        return bcrypt.hashpw(password.encode("utf8"), bcrypt.gensalt()).decode("utf8")
 
-    async def authenticate_user(self, username: str, password: str) -> bool:
+    def authenticate_user(self, username: str, password: str) -> bool:
         return username == self.settings.username and self.verify_password(
             password, self.settings.password
         )

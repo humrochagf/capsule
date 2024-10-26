@@ -1,19 +1,30 @@
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 from .forms import GrantType, OAuth2AuthorizationCodeForm
 from .services import AuthService, get_auth_service
 
+security = HTTPBasic()
+
 AuthServiceInjection = Annotated[AuthService, Depends(get_auth_service)]
+BasicAuthInjection = Annotated[HTTPBasicCredentials, Depends(security)]
 OAuth2FormInjection = Annotated[OAuth2AuthorizationCodeForm, Depends()]
 
 router = APIRouter(tags=["security"])
 
 
-@router.post("/oauth/authorize")
-async def authorize_app(service: AuthServiceInjection) -> dict:
+@router.get("/oauth/authorize")
+async def authorize_app(
+    service: AuthServiceInjection,
+    auth: BasicAuthInjection,
+) -> dict:
+    if not service.authenticate_user(auth.username, auth.password):
+        raise HTTPException(HTTP_401_UNAUTHORIZED)
+
     return {}
 
 

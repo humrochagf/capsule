@@ -27,12 +27,12 @@ classifiers = [
   "Topic :: Internet",
 ]
 dependencies = [
+  "bcrypt",
   "cryptography",
   "httpx",
   "jinja2",
   "loguru",
   "motor",
-  "passlib[bcrypt]",
   "python-multipart",
   "uvicorn[standard]",
   "wheke",
