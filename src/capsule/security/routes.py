@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pydantic import AnyUrl
 from starlette.responses import HTMLResponse
 from starlette.status import HTTP_401_UNAUTHORIZED
 from starlette.templating import Jinja2Templates
@@ -26,6 +27,11 @@ async def request_authorization(
     service: AuthServiceInjection,
     auth: BasicAuthInjection,
     request: Request,
+    client_id: str,
+    scope: str,
+    redirect_uri: AnyUrl,
+    response_type: str,
+
 ) -> HTMLResponse:
     if not service.authenticate_user(auth.username, auth.password):
         raise HTTPException(HTTP_401_UNAUTHORIZED)
@@ -33,7 +39,12 @@ async def request_authorization(
     return templates.TemplateResponse(
         name="authorize.html",
         request=request,
-        context={},
+        context={
+            "client_id": client_id,
+            "scope": scope,
+            "redirect_uri": redirect_uri,
+            "response_type": response_type,
+        },
     )
 
 
