@@ -41,6 +41,9 @@ class AuthService:
 
         return app
 
+    async def get_app(self, client_id: str) -> App | None:
+        return await self.apps.get_app(client_id)
+
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(
             plain_password.encode("utf8"), hashed_password.encode("utf8")
