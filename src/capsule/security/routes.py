@@ -1,9 +1,12 @@
 import time
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from starlette.responses import HTMLResponse
 from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.templating import Jinja2Templates
 
 from .forms import GrantType, OAuth2AuthorizationCodeForm
 from .services import AuthService, get_auth_service
@@ -15,10 +18,27 @@ BasicAuthInjection = Annotated[HTTPBasicCredentials, Depends(security)]
 OAuth2FormInjection = Annotated[OAuth2AuthorizationCodeForm, Depends()]
 
 router = APIRouter(tags=["security"])
+templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 
 
-@router.get("/oauth/authorize")
-async def authorize_app(
+@router.get("/oauth/authorize", include_in_schema=False)
+async def request_authorization(
+    service: AuthServiceInjection,
+    auth: BasicAuthInjection,
+    request: Request,
+) -> HTMLResponse:
+    if not service.authenticate_user(auth.username, auth.password):
+        raise HTTPException(HTTP_401_UNAUTHORIZED)
+
+    return templates.TemplateResponse(
+        name="authorize.html",
+        request=request,
+        context={},
+    )
+
+
+@router.post("/oauth/authorize")
+async def authorize(
     service: AuthServiceInjection,
     auth: BasicAuthInjection,
 ) -> dict:
