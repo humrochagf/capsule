@@ -1,3 +1,21 @@
-<h1>Hello</h1>
+<h1>Authorize {{ app_name }}</h1>
 
-{{ scope }}
+<form method="POST">
+  <fieldset>
+    <p>Do you want to give <b>{{ app_name }}</b> access to {{ username }} account?</p>
+    <p>It will have permission to:</p>
+    <ul>
+      {% if "read" in scope %}<li>Read all of your data</li>{% endif %}
+      {% if "write" in scope %}<li>Create posts, edit follows, and change all other data</li>{% endif %}
+      {% if "push" in scope %}<li>Receive push notifications</li>{% endif %}
+    </ul>
+    <input type="hidden" name="client_id" value="{{ client_id }}">
+    <input type="hidden" name="state" value="{{ state }}">
+    <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+    <input type="hidden" name="scope" value="{{ scope }}">
+  </fieldset>
+  <div class="buttons">
+    <a href="#" class="secondary button left">Deny</a>
+    <button>Allow</button>
+  </div>
+</form>
