@@ -3,10 +3,10 @@ from pydantic_core import to_jsonable_python
 
 from capsule.database.service import DatabaseService
 
-from ..models import Token
+from ..models import Authorization
 
 
-class TokenRepository:
+class AuthorizationRepository:
     collection: AsyncIOMotorCollection
 
     def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
@@ -15,5 +15,9 @@ class TokenRepository:
     async def create_indexes(self) -> None:
         await self.collection.create_index("app_id", unique=True)
 
-    async def create_token(self, token: Token) -> None:
-        await self.collection.insert_one(to_jsonable_python(token))
+    async def upsert_authorization(self, authorization: Authorization) -> None:
+        await self.collection.replace_one(
+            {"app_id": {"$eq": str(authorization.app_id)}},
+            to_jsonable_python(authorization),
+            upsert=True,
+        )

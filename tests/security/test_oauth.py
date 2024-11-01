@@ -119,3 +119,29 @@ def test_get_authorize_no_client(
 
     response = client.get("/oauth/authorize", auth=auth, params=params)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_post_authorize(
+    client: TestClient,
+    capsule_settings: CapsuleSettings,
+) -> None:
+    payload = {
+        "client_name": "Authorize Test",
+        "redirect_uris": "urn:ietf:wg:oauth:2.0:oob",
+    }
+
+    response = client.post("/api/v1/apps", json=payload)
+    assert response.status_code == status.HTTP_200_OK
+
+    app = response.json()
+    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    payload = {
+        "client_id": app["client_id"],
+        "scope": app["scopes"],
+        "redirect_uri": app["redirect_uris"],
+        "response_type": "code",
+    }
+
+    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    assert response.status_code == status.HTTP_200_OK
+    assert "authorization-code" in response.text

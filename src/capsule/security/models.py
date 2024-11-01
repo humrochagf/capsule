@@ -17,6 +17,13 @@ class CreateAppRequest(BaseModel):
     website: HttpUrl | None = None
 
 
+class AuthorizeAppRequest(BaseModel):
+    client_id: str
+    redirect_uri: AnyUrl
+    scope: str
+    state: str = ""
+
+
 class App(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     name: str
@@ -32,6 +39,7 @@ class Authorization(BaseModel):
     app_id: UUID
     scopes: str
     redirect_uri: AnyUrl
+    code: str = Field(default_factory=secret_token)
     created_at: datetime = Field(default_factory=utc_now)
 
     @property
