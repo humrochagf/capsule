@@ -1,4 +1,7 @@
+from typing import Annotated
+
 import bcrypt
+from fastapi import Depends
 from wheke import get_service
 
 from capsule.database.service import get_database_service
@@ -69,3 +72,6 @@ def auth_service_factory() -> AuthService:
 
 def get_auth_service() -> AuthService:
     return get_service(AuthService)
+
+
+AuthServiceInjection = Annotated[AuthService, Depends(get_auth_service)]

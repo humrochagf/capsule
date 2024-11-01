@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
-from typing import cast
+from typing import Annotated, cast
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from fastapi import Request
+from fastapi import Depends, Request
 from wheke import get_service
 
 from ..exception import VerificationBadFormatError, VerificationError
@@ -82,3 +82,6 @@ def signature_service_factory() -> SignatureService:
 
 def get_signature_service() -> SignatureService:
     return get_service(SignatureService)
+
+
+SignatureServiceInjection = Annotated[SignatureService, Depends(get_signature_service)]

@@ -9,14 +9,12 @@ from starlette.responses import HTMLResponse
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from starlette.templating import Jinja2Templates
 
-from .forms import GrantType, OAuth2AuthorizationCodeForm
-from .services import AuthService, get_auth_service
+from .forms import GrantType, OAuth2FormInjection
+from .services import AuthServiceInjection
 
 security = HTTPBasic()
 
-AuthServiceInjection = Annotated[AuthService, Depends(get_auth_service)]
 BasicAuthInjection = Annotated[HTTPBasicCredentials, Depends(security)]
-OAuth2FormInjection = Annotated[OAuth2AuthorizationCodeForm, Depends()]
 
 router = APIRouter(tags=["security"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -24,7 +22,7 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 
 @router.get("/oauth/authorize", include_in_schema=False)
 async def request_authorization(
-    service: AuthServiceInjection,
+    auth_service: AuthServiceInjection,
     auth: BasicAuthInjection,
     request: Request,
     client_id: str,
@@ -32,10 +30,10 @@ async def request_authorization(
     redirect_uri: AnyUrl,
     response_type: str,
 ) -> HTMLResponse:
-    if not service.authenticate_user(auth.username, auth.password):
+    if not auth_service.authenticate_user(auth.username, auth.password):
         raise HTTPException(HTTP_401_UNAUTHORIZED)
 
-    app = await service.get_app(client_id)
+    app = await auth_service.get_app(client_id)
 
     if not app:
         raise HTTPException(HTTP_400_BAD_REQUEST, detail="Invalid client_id")

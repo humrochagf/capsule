@@ -5,13 +5,12 @@ from fastapi.security import OAuth2PasswordBearer
 
 from capsule.security.models import App, CreateAppRequest
 
-from .service import APIService, get_api_service
+from .service import APIServiceInjection
 from .utils import MultiContentTypeRoute
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="oauth/token")
 
 OAuth2TokenInjection = Annotated[str, Depends(oauth2_scheme)]
-APIServiceInjection = Annotated[APIService, Depends(get_api_service)]
 
 router = APIRouter(tags=["api"], prefix="/api", route_class=MultiContentTypeRoute)
 

@@ -1,3 +1,6 @@
+from typing import Annotated
+
+from fastapi import Depends
 from wheke import get_service
 
 from capsule.security.models import App, CreateAppRequest
@@ -26,3 +29,6 @@ def api_service_factory() -> APIService:
 
 def get_api_service() -> APIService:
     return get_service(APIService)
+
+
+APIServiceInjection = Annotated[APIService, Depends(get_api_service)]

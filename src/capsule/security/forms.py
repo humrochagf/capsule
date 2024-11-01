@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Annotated
 
-from fastapi import Form
+from fastapi import Depends, Form
 from pydantic import AnyUrl
 
 
@@ -37,3 +37,6 @@ class OAuth2AuthorizationCodeForm:
         self.redirect_uri = redirect_uri
         self.code_verifier = code_verifier
         self.scopes = scope.split()
+
+
+OAuth2FormInjection = Annotated[OAuth2AuthorizationCodeForm, Depends()]

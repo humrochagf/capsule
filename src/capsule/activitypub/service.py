@@ -1,7 +1,8 @@
 import mimetypes
-from typing import cast
+from typing import Annotated, cast
 
 import httpx
+from fastapi import Depends
 from loguru import logger
 from pydantic import HttpUrl
 from pydantic_core import Url
@@ -239,3 +240,8 @@ def activitypub_service_factory() -> ActivityPubService:
 
 def get_activitypub_service() -> ActivityPubService:
     return get_service(ActivityPubService)
+
+
+ActivityPubServiceInjection = Annotated[
+    ActivityPubService, Depends(get_activitypub_service)
+]
