@@ -42,6 +42,7 @@ async def request_authorization(
         name="authorize.html",
         request=request,
         context={
+            "username": auth.username,
             "app_name": app.name,
             "client_id": client_id,
             "scope": scope,

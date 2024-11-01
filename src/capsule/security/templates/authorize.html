@@ -2,7 +2,7 @@
 
 <form method="POST">
   <fieldset>
-    <p>Do you want to give <b>{{ app_name }}</b> access to {{ username }} account?</p>
+    <p>Do you want to give <b>{{ app_name }}</b> access to <b>{{ username }}</b> account?</p>
     <p>It will have permission to:</p>
     <ul>
       {% if "read" in scope %}<li>Read all of your data</li>{% endif %}
@@ -10,7 +10,6 @@
       {% if "push" in scope %}<li>Receive push notifications</li>{% endif %}
     </ul>
     <input type="hidden" name="client_id" value="{{ client_id }}">
-    <input type="hidden" name="state" value="{{ state }}">
     <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
     <input type="hidden" name="scope" value="{{ scope }}">
   </fieldset>
