@@ -38,6 +38,15 @@ async def request_authorization(
     if not app:
         raise HTTPException(HTTP_400_BAD_REQUEST, detail="Invalid client_id")
 
+    for requested_scope in scope.split():
+        if requested_scope not in app.scopes.split():
+            raise HTTPException(HTTP_400_BAD_REQUEST, detail="Bad scope for this app")
+
+    if str(redirect_uri) not in str(app.redirect_uris).split():
+        raise HTTPException(
+            HTTP_400_BAD_REQUEST, detail="Bad redirect_uri for this app"
+        )
+
     return templates.TemplateResponse(
         name="authorize.html",
         request=request,
