@@ -166,6 +166,7 @@ def test_post_authorize_url(
         "scope": app["scopes"],
         "redirect_uri": app["redirect_uris"],
         "response_type": "code",
+        "state": "some data",
     }
 
     response = client.post(
@@ -264,3 +265,21 @@ def test_post_authorize_no_client(
 
     response = client.post("/oauth/authorize", auth=auth, json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_token_client_credentials(client: TestClient) -> None:
+    payload = {
+        "grant_type": "client_credentials",
+        "code": "",
+        "client_id": "any id",
+        "client_secret": "any secret",
+        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+    }
+
+    response = client.post("/oauth/token", json=payload)
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    assert data["access_token"] == "__app__"
+    assert data["token_type"] == "Bearer"
+    assert data["scope"] == "read"
