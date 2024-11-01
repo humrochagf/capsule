@@ -13,11 +13,16 @@ class AuthorizationRepository:
         self.collection = database_service.get_collection(collection_name)
 
     async def create_indexes(self) -> None:
-        await self.collection.create_index("app_id", unique=True)
+        await self.collection.create_index("client_id", unique=True)
+        await self.collection.create_index("code", unique=True)
 
     async def upsert_authorization(self, authorization: Authorization) -> None:
         await self.collection.replace_one(
-            {"app_id": {"$eq": str(authorization.app_id)}},
+            {"client_id": {"$eq": str(authorization.client_id)}},
             to_jsonable_python(authorization),
             upsert=True,
         )
+
+    async def get_authorization(self, code: str) -> Authorization | None:
+        data = await self.collection.find_one({"code": {"$eq": code}})
+        return Authorization(**data) if data else None

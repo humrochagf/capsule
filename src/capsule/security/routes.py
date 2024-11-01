@@ -10,9 +10,7 @@ from starlette.responses import HTMLResponse
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from starlette.templating import Jinja2Templates
 
-from capsule.security.models import AuthorizeAppRequest
-
-from .forms import GrantType, OAuth2FormInjection
+from .models import AuthorizeAppRequest, GrantType, OAuth2TokenRequest
 from .services import AuthServiceInjection
 
 security = HTTPBasic()
@@ -91,7 +89,7 @@ async def authorize(
         )
 
     authorization = await service.authorize_app(
-        app.id, authorize.scope, authorize.redirect_uri
+        app.client_id, authorize.scope, authorize.redirect_uri
     )
 
     if str(authorization.redirect_uri) == "urn:ietf:wg:oauth:2.0:oob":
@@ -123,16 +121,9 @@ async def authorize(
 
 @router.post("/oauth/token")
 async def token_auth(
-    service: AuthServiceInjection, auth_form: OAuth2FormInjection
+    service: AuthServiceInjection, request: OAuth2TokenRequest
 ) -> dict:
-    match auth_form.grant_type:
-        case GrantType.authorization_code:
-            return {
-                "access_token": "token",
-                "token_type": "Bearer",
-                "scope": "read write follow push",
-                "created_at": 1573979017,
-            }
+    match request.grant_type:
         case GrantType.client_credentials:
             # individual client credential token unsupported
             # returning fixed token for apps interacting with
@@ -142,4 +133,11 @@ async def token_auth(
                 "token_type": "Bearer",
                 "scope": "read",
                 "created_at": int(time.time()),
+            }
+        case GrantType.authorization_code:
+            return {
+                "access_token": "token",
+                "token_type": "Bearer",
+                "scope": "read write follow push",
+                "created_at": 1573979017,
             }

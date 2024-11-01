@@ -1,5 +1,4 @@
 from typing import Annotated
-from uuid import UUID
 
 import bcrypt
 from fastapi import Depends
@@ -9,7 +8,7 @@ from wheke import get_service
 from capsule.database.service import get_database_service
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
-from ..models import App, Authorization, CreateAppRequest
+from ..models import App, Authorization, CreateAppRequest, Token
 from ..repositories import AppRepository, AuthorizationRepository, TokenRepository
 
 
@@ -54,10 +53,10 @@ class AuthService:
         return await self.apps.get_app(client_id)
 
     async def authorize_app(
-        self, app_id: UUID, scopes: str, redirect_uri: AnyUrl
+        self, client_id: str, scopes: str, redirect_uri: AnyUrl
     ) -> Authorization:
         authorization = Authorization(
-            app_id=app_id, scopes=scopes, redirect_uri=redirect_uri
+            client_id=client_id, scopes=scopes, redirect_uri=redirect_uri
         )
 
         await self.authorizations.upsert_authorization(authorization)
@@ -76,6 +75,17 @@ class AuthService:
         return username == self.settings.username and self.verify_password(
             password, self.settings.password
         )
+
+    async def make_token(self, authorization_code: str) -> Token | None:
+        authorization = await self.authorizations.get_authorization(authorization_code)
+
+        if authorization is None or authorization.has_expired:
+            return None
+
+        await self.get_app(authorization.client_id)
+
+        # TODO make token and return
+        return None
 
 
 def auth_service_factory() -> AuthService:

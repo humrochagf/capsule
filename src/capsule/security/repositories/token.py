@@ -13,7 +13,7 @@ class TokenRepository:
         self.collection = database_service.get_collection(collection_name)
 
     async def create_indexes(self) -> None:
-        await self.collection.create_index("app_id", unique=True)
+        await self.collection.create_index("client_id", unique=True)
 
     async def create_token(self, token: Token) -> None:
         await self.collection.insert_one(to_jsonable_python(token))
