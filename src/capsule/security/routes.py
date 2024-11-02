@@ -10,7 +10,7 @@ from starlette.responses import HTMLResponse
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from starlette.templating import Jinja2Templates
 
-from .models import AuthorizeAppRequest, GrantType, OAuth2TokenRequest
+from .models import AuthorizeAppRequest, GrantType, OAuthTokenRequest
 from .services import AuthServiceInjection
 
 security = HTTPBasic()
@@ -120,9 +120,7 @@ async def authorize(
 
 
 @router.post("/oauth/token")
-async def token_auth(
-    service: AuthServiceInjection, request: OAuth2TokenRequest
-) -> dict:
+async def token_auth(service: AuthServiceInjection, request: OAuthTokenRequest) -> dict:
     match request.grant_type:
         case GrantType.client_credentials:
             # individual client credential token unsupported
@@ -135,9 +133,14 @@ async def token_auth(
                 "created_at": int(time.time()),
             }
         case GrantType.authorization_code:
+            token = await service.make_oauth_token(request)
+
+            if not token:
+                raise HTTPException(HTTP_401_UNAUTHORIZED)
+
             return {
-                "access_token": "token",
+                "access_token": token.token,
                 "token_type": "Bearer",
-                "scope": "read write follow push",
-                "created_at": 1573979017,
+                "scope": token.scopes,
+                "created_at": int(token.created_at.timestamp()),
             }

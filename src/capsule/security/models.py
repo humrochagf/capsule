@@ -29,7 +29,7 @@ class GrantType(str, Enum):
     client_credentials = "client_credentials"
 
 
-class OAuth2TokenRequest(BaseModel):
+class OAuthTokenRequest(BaseModel):
     grant_type: GrantType
     code: str
     client_id: str

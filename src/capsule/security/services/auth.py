@@ -8,7 +8,7 @@ from wheke import get_service
 from capsule.database.service import get_database_service
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
-from ..models import App, Authorization, CreateAppRequest, Token
+from ..models import App, Authorization, CreateAppRequest, OAuthTokenRequest, Token
 from ..repositories import AppRepository, AuthorizationRepository, TokenRepository
 
 
@@ -76,16 +76,31 @@ class AuthService:
             password, self.settings.password
         )
 
-    async def make_token(self, authorization_code: str) -> Token | None:
-        authorization = await self.authorizations.get_authorization(authorization_code)
+    async def make_oauth_token(self, request: OAuthTokenRequest) -> Token | None:
+        app = await self.get_app(request.client_id)
+        authorization = await self.authorizations.get_authorization(request.code)
 
-        if authorization is None or authorization.has_expired:
+        if app is None or authorization is None:
             return None
 
-        await self.get_app(authorization.client_id)
+        is_valid = (
+            not authorization.has_expired
+            and request.redirect_uri == authorization.redirect_uri
+            and request.client_id == authorization.client_id
+            and request.client_secret == app.client_secret
+        )
 
-        # TODO make token and return
-        return None
+        if not is_valid:
+            return None
+
+        token = Token(
+            client_id=app.client_id,
+            scopes=authorization.scopes,
+        )
+
+        await self.tokens.create_token(token)
+
+        return token
 
 
 def auth_service_factory() -> AuthService:
