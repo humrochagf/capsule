@@ -1,5 +1,6 @@
 from wheke import Pod, ServiceConfig
 
+from .cli import cli
 from .routes import router
 from .services import (
     AuthService,
@@ -15,4 +16,5 @@ security_pod = Pod(
         ServiceConfig(SignatureService, signature_service_factory),
     ],
     router=router,
+    cli=cli,
 )

@@ -1,16 +1,9 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter
 
 from capsule.security.models import App, CreateAppRequest
 
 from .service import APIServiceInjection
 from .utils import MultiContentTypeRoute
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="oauth/token")
-
-OAuth2TokenInjection = Annotated[str, Depends(oauth2_scheme)]
 
 router = APIRouter(tags=["api"], prefix="/api", route_class=MultiContentTypeRoute)
 
@@ -21,10 +14,3 @@ async def create_app(
     request: CreateAppRequest,
 ) -> App:
     return await service.create_app(request)
-
-
-@router.get("/v1/apps")
-async def verify_app(
-    token: OAuth2TokenInjection,
-) -> dict:
-    return {"token": token}
