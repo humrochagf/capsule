@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import AnyUrl
@@ -69,7 +69,7 @@ async def authorize(
     service: AuthServiceInjection,
     auth: BasicAuthInjection,
     request: Request,
-    authorize: AuthorizeAppRequest,
+    authorize: Annotated[AuthorizeAppRequest, Form()],
 ) -> Response:
     if not service.authenticate_user(auth.username, auth.password):
         raise HTTPException(HTTP_401_UNAUTHORIZED)

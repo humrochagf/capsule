@@ -76,6 +76,14 @@ class AuthService:
             password, self.settings.password
         )
 
+    async def authenticate_token(self, access_token: str) -> Token | None:
+        token = await self.tokens.get_token(access_token)
+
+        if token is None:
+            return None
+
+        return token
+
     async def make_oauth_token(self, request: OAuthTokenRequest) -> Token | None:
         app = await self.get_app(request.client_id)
         authorization = await self.authorizations.get_authorization(request.code)

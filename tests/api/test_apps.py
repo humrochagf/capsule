@@ -24,3 +24,19 @@ def test_create_app_data(
 
     response = client.post("/api/v1/apps", data=payload)
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_verify_credentials(
+    logged_client: TestClient,
+) -> None:
+    response = logged_client.get("/api/v1/apps/verify_credentials")
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_verify_credentials_not_logged(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/apps/verify_credentials", headers={"Authorization": "Bearer bad_token"}
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

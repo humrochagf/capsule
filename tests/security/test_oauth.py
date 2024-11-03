@@ -143,7 +143,7 @@ def test_post_authorize(
         "response_type": "code",
     }
 
-    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    response = client.post("/oauth/authorize", auth=auth, data=payload)
     assert response.status_code == status.HTTP_200_OK
     assert "authorization-code" in response.text
 
@@ -171,7 +171,7 @@ def test_post_authorize_url(
     }
 
     response = client.post(
-        "/oauth/authorize", auth=auth, json=payload, follow_redirects=False
+        "/oauth/authorize", auth=auth, data=payload, follow_redirects=False
     )
     assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
     assert "code" in str(response.headers["location"])
@@ -198,7 +198,7 @@ def test_post_authorize_bad_auth(
         "response_type": "code",
     }
 
-    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    response = client.post("/oauth/authorize", auth=auth, data=payload)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -223,7 +223,7 @@ def test_post_authorize_bad_scope(
         "response_type": "code",
     }
 
-    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    response = client.post("/oauth/authorize", auth=auth, data=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -248,7 +248,7 @@ def test_post_authorize_bad_redirect_uri(
         "response_type": "code",
     }
 
-    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    response = client.post("/oauth/authorize", auth=auth, data=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -264,7 +264,7 @@ def test_post_authorize_no_client(
         "response_type": "code",
     }
 
-    response = client.post("/oauth/authorize", auth=auth, json=payload)
+    response = client.post("/oauth/authorize", auth=auth, data=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -308,7 +308,7 @@ def test_token_authorization_code(
     }
 
     response = client.post(
-        "/oauth/authorize", auth=auth, json=payload, follow_redirects=False
+        "/oauth/authorize", auth=auth, data=payload, follow_redirects=False
     )
     assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
 
@@ -366,7 +366,7 @@ def test_token_authorization_code_bad_redirect_uri(
     }
 
     response = client.post(
-        "/oauth/authorize", auth=auth, json=payload, follow_redirects=False
+        "/oauth/authorize", auth=auth, data=payload, follow_redirects=False
     )
     assert response.status_code == status.HTTP_307_TEMPORARY_REDIRECT
 

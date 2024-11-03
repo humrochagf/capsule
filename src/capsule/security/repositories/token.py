@@ -14,6 +14,11 @@ class TokenRepository:
 
     async def create_indexes(self) -> None:
         await self.collection.create_index("client_id", unique=True)
+        await self.collection.create_index("token")
 
     async def create_token(self, token: Token) -> None:
         await self.collection.insert_one(to_jsonable_python(token))
+
+    async def get_token(self, access_token: str) -> Token | None:
+        data = await self.collection.find_one({"token": {"$eq": access_token}})
+        return Token(**data) if data else None

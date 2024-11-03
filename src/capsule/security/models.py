@@ -39,6 +39,13 @@ class OAuthTokenRequest(BaseModel):
     scope: str = "read"
 
 
+class AuthenticatedApp(BaseModel):
+    name: str
+    website: HttpUrl | None
+    redirect_uris: list[AnyUrl]
+    scopes: list[str]
+
+
 class App(BaseModel):
     name: str
     website: HttpUrl | None
