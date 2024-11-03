@@ -1,4 +1,6 @@
 import base64
+import secrets
+from base64 import b64decode, b64encode
 from collections import namedtuple
 from collections.abc import Generator
 from datetime import datetime, timezone
@@ -14,9 +16,15 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
 from httpx import Auth, Request, Response
 from pydantic import HttpUrl
 
-from .models import HttpSignatureInfo
-
 RSAKeyPair = namedtuple("RSAKeyPair", ["private_key", "public_key"])
+
+
+def client_id() -> str:
+    return "cp-" + secrets.token_urlsafe(40)
+
+
+def secret_token() -> str:
+    return secrets.token_urlsafe(43)
 
 
 def calculate_sha_256_digest(data: bytes) -> str:
@@ -48,6 +56,55 @@ def generate_rsa_keypair() -> RSAKeyPair:
     )
 
     return RSAKeyPair(private_key_serialized, public_key_serialized)
+
+
+class HttpSignatureInfo:
+    algorithm: str
+    headers: list[str]
+    signature: bytes
+    keyid: str
+
+    def __init__(
+        self,
+        *,
+        algorithm: str,
+        headers: list[str],
+        signature: bytes,
+        keyid: str,
+    ) -> None:
+        self.algorithm = algorithm
+        self.headers = headers
+        self.signature = signature
+        self.keyid = keyid
+
+    @property
+    def headers_str(self) -> str:
+        return " ".join(header.lower() for header in self.headers)
+
+    @property
+    def compiled_signature(self) -> str:
+        return (
+            f'keyId="{self.keyid}"'
+            f',headers="{self.headers_str}"'
+            f',signature="{b64encode(self.signature).decode("ascii")}"'
+            f',algorithm="{self.algorithm}"'
+        )
+
+    @classmethod
+    def from_compiled_signature(cls, signature: str) -> "HttpSignatureInfo":
+        parts = {}
+
+        for part in signature.split(","):
+            key, value = part.split("=", 1)
+            value = value.strip('"')
+            parts[key.lower()] = value
+
+        return HttpSignatureInfo(
+            keyid=parts["keyid"],
+            signature=b64decode(parts["signature"]),
+            headers=parts.get("headers", "").split(),
+            algorithm=parts.get("algorithm", "rsa-sha256"),
+        )
 
 
 class SignedRequestAuth(Auth):

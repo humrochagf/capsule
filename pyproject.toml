@@ -27,6 +27,7 @@ classifiers = [
   "Topic :: Internet",
 ]
 dependencies = [
+  "bcrypt",
   "cryptography",
   "httpx",
   "jinja2",

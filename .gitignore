@@ -1,10 +1,10 @@
 *.db
 *.egg
 *.egg-info
-*.env
 *.lock
 *.py[oc]
 .coverage
+.env
 .hatch/
 .mypy_cache/
 .venv/

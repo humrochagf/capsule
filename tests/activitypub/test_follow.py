@@ -15,9 +15,8 @@ def test_receive_follow(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    instance_username = "testuser"
+    instance_username = capsule_settings.username
     instance_inbox = f"/actors/{instance_username}/inbox"
-    capsule_settings.username = instance_username
     actor, keys = actor_and_keypair
     actor_username = actor["preferredUsername"]
 
@@ -47,9 +46,8 @@ def test_accept_follow_failed(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    instance_username = "testuser"
+    instance_username = capsule_settings.username
     instance_inbox = f"/actors/{instance_username}/inbox"
-    capsule_settings.username = instance_username
     actor, _ = actor_and_keypair
     actor_username = actor["preferredUsername"]
 

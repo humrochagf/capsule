@@ -14,7 +14,7 @@ def test_system_inbox_sync(
     actor_and_keypair: tuple[dict, RSAKeyPair],
     respx_mock: MockRouter,
 ) -> None:
-    capsule_settings.username = "testuser"
+    instance_username = capsule_settings.username
     actor, _ = actor_and_keypair
     actor_username = actor["preferredUsername"]
 
@@ -24,9 +24,9 @@ def test_system_inbox_sync(
     mocked_response = Response(status_code=500)
     respx_mock.get(actor["id"]).mock(return_value=mocked_response)
 
-    payload = ap_follow(actor_username, capsule_settings.username)
+    payload = ap_follow(actor_username, instance_username)
 
-    response = client.post(f"/actors/{capsule_settings.username}/inbox", json=payload)
+    response = client.post(f"/actors/{instance_username}/inbox", json=payload)
     assert response.status_code == status.HTTP_202_ACCEPTED
 
     mocked_response = Response(status_code=200, json=actor)

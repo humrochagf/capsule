@@ -17,3 +17,7 @@ class AppRepository:
 
     async def create_app(self, app: App) -> None:
         await self.collection.insert_one(to_jsonable_python(app))
+
+    async def get_app(self, client_id: str) -> App | None:
+        data = await self.collection.find_one({"client_id": {"$eq": client_id}})
+        return App(**data) if data else None

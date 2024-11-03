@@ -1,49 +1,34 @@
+from typing import Annotated
+
+from fastapi import Depends
 from wheke import get_service
 
-from capsule.database.service import get_database_service
-from capsule.settings import CapsuleSettings, get_capsule_settings
-
-from .models import App, CreateAppRequest
-from .repositories import AppRepository
+from capsule.security.models import App, CreateAppRequest
+from capsule.security.services import AuthService, get_auth_service
 
 
 class APIService:
-    settings: CapsuleSettings
-
-    apps: AppRepository
+    auth: AuthService
 
     def __init__(
         self,
         *,
-        app_repository: AppRepository,
+        auth_service: AuthService,
     ) -> None:
-        self.settings = get_capsule_settings()
-
-        self.apps = app_repository
-
-    async def setup_repositories(self) -> None:
-        await self.apps.create_indexes()
+        self.auth = auth_service
 
     async def create_app(self, request: CreateAppRequest) -> App:
-        app = App(
-            name=request.client_name,
-            redirect_uris=request.redirect_uris,
-            scopes=request.scopes,
-            website=request.website,
-        )
-
-        await self.apps.create_app(app)
-
-        return app
+        return await self.auth.create_app(request)
 
 
 def api_service_factory() -> APIService:
-    database_service = get_database_service()
-
     return APIService(
-        app_repository=AppRepository("apps", database_service),
+        auth_service=get_auth_service(),
     )
 
 
 def get_api_service() -> APIService:
     return get_service(APIService)
+
+
+APIServiceInjection = Annotated[APIService, Depends(get_api_service)]

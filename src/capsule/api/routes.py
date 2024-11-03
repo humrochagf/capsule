@@ -1,14 +1,19 @@
-from typing import Annotated
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic_core import Url
+from starlette.status import HTTP_401_UNAUTHORIZED
 
-from .models import App, CreateAppRequest
-from .service import APIService, get_api_service
+from capsule.security.models import App, AuthenticatedApp, CreateAppRequest
+from capsule.security.services import AuthServiceInjection
+
+from .service import APIServiceInjection
 from .utils import MultiContentTypeRoute
 
 router = APIRouter(tags=["api"], prefix="/api", route_class=MultiContentTypeRoute)
 
-APIServiceInjection = Annotated[APIService, Depends(get_api_service)]
+CredentialsInjection = Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())]
 
 
 @router.post("/v1/apps")
@@ -17,3 +22,22 @@ async def create_app(
     request: CreateAppRequest,
 ) -> App:
     return await service.create_app(request)
+
+
+@router.get("/v1/apps/verify_credentials")
+async def verify_app(
+    service: AuthServiceInjection, auth: CredentialsInjection
+) -> AuthenticatedApp:
+    token = await service.authenticate_token(auth.credentials)
+
+    if token is None:
+        raise HTTPException(HTTP_401_UNAUTHORIZED)
+
+    app = cast(App, await service.get_app(token.client_id))
+
+    return AuthenticatedApp(
+        name=app.name,
+        website=app.website,
+        redirect_uris=[Url(url) for url in str(app.redirect_uris).split()],
+        scopes=token.scopes.split(),
+    )

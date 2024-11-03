@@ -1,15 +1,6 @@
 from pathlib import Path
-from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from loguru import logger
 from starlette.status import (
@@ -22,20 +13,14 @@ from starlette.templating import Jinja2Templates
 from capsule.__about__ import __version__
 from capsule.activitypub.models.inbox import InboxEntryStatus
 from capsule.security.exception import VerificationBadFormatError, VerificationError
-from capsule.security.service import SecurityService, get_security_service
-from capsule.settings import get_capsule_settings
+from capsule.security.services import SignatureServiceInjection
+from capsule.settings import CapsuleSettingsInjection
 
 from .models import Activity, Actor, InboxEntry
-from .service import ActivityPubService, get_activitypub_service
+from .service import ActivityPubServiceInjection
 
 router = APIRouter(tags=["activitypub"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
-
-ActivityPubServiceInjection = Annotated[
-    ActivityPubService, Depends(get_activitypub_service)
-]
-
-SecurityServiceInjection = Annotated[SecurityService, Depends(get_security_service)]
 
 
 class ActivityJSONResponse(JSONResponse):
@@ -47,24 +32,26 @@ class JRDJSONResponse(JSONResponse):
 
 
 @router.get("/.well-known/host-meta")
-async def well_known_host_meta(request: Request) -> Response:
+async def well_known_host_meta(
+    settings: CapsuleSettingsInjection, request: Request
+) -> Response:
     return templates.TemplateResponse(
         name="host-meta.xml",
         media_type="application/xrd+xml",
         request=request,
         context={
-            "hostname": get_capsule_settings().hostname,
+            "hostname": settings.hostname,
         },
     )
 
 
 @router.get("/.well-known/nodeinfo")
-async def well_known_nodeinfo() -> dict:
+async def well_known_nodeinfo(settings: CapsuleSettingsInjection) -> dict:
     return {
         "links": [
             {
                 "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
-                "href": f"{get_capsule_settings().hostname}nodeinfo/2.0",
+                "href": f"{settings.hostname}nodeinfo/2.0",
             }
         ],
     }
@@ -72,9 +59,10 @@ async def well_known_nodeinfo() -> dict:
 
 @router.get("/.well-known/webfinger", response_class=JRDJSONResponse)
 async def well_known_webfinger(
-    service: ActivityPubServiceInjection, resource: str = ""
+    settings: CapsuleSettingsInjection,
+    service: ActivityPubServiceInjection,
+    resource: str = "",
 ) -> dict:
-    settings = get_capsule_settings()
     acct = resource.removeprefix("acct:").split("@")
 
     match acct:
@@ -87,11 +75,13 @@ async def well_known_webfinger(
 
 
 @router.get("/nodeinfo/2.0")
-async def nodeinfo(service: ActivityPubServiceInjection) -> dict:
+async def nodeinfo(
+    settings: CapsuleSettingsInjection, service: ActivityPubServiceInjection
+) -> dict:
     return {
         "version": "2.0",
         "software": {
-            "name": get_capsule_settings().project_name.lower(),
+            "name": settings.project_name.lower(),
             "version": __version__,
         },
         "protocols": ["activitypub"],
@@ -123,10 +113,11 @@ async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
 
 @router.get("/actors/{username}/icon")
 async def actor_profile_picture(
-    service: ActivityPubServiceInjection, username: str
+    settings: CapsuleSettingsInjection,
+    service: ActivityPubServiceInjection,
+    username: str,
 ) -> FileResponse:
     main_actor = service.get_main_actor()
-    settings = get_capsule_settings()
 
     if username != main_actor.username or settings.profile_image is None:
         raise HTTPException(HTTP_404_NOT_FOUND)
@@ -137,7 +128,7 @@ async def actor_profile_picture(
 @router.post("/actors/{username}/inbox", status_code=status.HTTP_202_ACCEPTED)
 async def actor_inbox(
     activitypub: ActivityPubServiceInjection,
-    security: SecurityServiceInjection,
+    signature: SignatureServiceInjection,
     background_tasks: BackgroundTasks,
     request: Request,
     username: str,
@@ -152,7 +143,7 @@ async def actor_inbox(
 
     if actor:
         try:
-            await security.verify_request(request, actor.public_key.public_key_pem)
+            await signature.verify_request(request, actor.public_key.public_key_pem)
         except VerificationBadFormatError as exc:
             raise HTTPException(HTTP_400_BAD_REQUEST) from exc
         except VerificationError as exc:

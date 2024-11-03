@@ -1,4 +1,7 @@
+from typing import Annotated
+
 import httpx
+from fastapi import Depends
 from pydantic import FilePath, HttpUrl, MongoDsn
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import SettingsConfigDict
@@ -15,6 +18,7 @@ class CapsuleSettings(WhekeSettings):
     database_name: str = "capsule"
 
     username: str = ""
+    password: str = ""
     name: str = ""
     summary: str = ""
     profile_image: FilePath | None = None
@@ -48,3 +52,6 @@ class CapsuleSettings(WhekeSettings):
 
 def get_capsule_settings() -> CapsuleSettings:
     return get_settings(CapsuleSettings)
+
+
+CapsuleSettingsInjection = Annotated[CapsuleSettings, Depends(get_capsule_settings)]
