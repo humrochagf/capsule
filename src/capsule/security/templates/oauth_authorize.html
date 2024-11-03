@@ -1,6 +1,6 @@
 <h1>Authorize {{ app_name }}</h1>
 
-<form action="{{ url_for('authorize') }}" method="POST">
+<form method="post" action="{{ url_for('authorize') }}" enctype="multipart/form-data">
   <fieldset>
     <p>Do you want to give <b>{{ app_name }}</b> access to <b>{{ username }}</b> account?</p>
     <p>It will have permission to:</p>
