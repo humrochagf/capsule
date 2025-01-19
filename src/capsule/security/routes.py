@@ -10,8 +10,6 @@ from starlette.responses import HTMLResponse
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from starlette.templating import Jinja2Templates
 
-from capsule.utils import MultiContentTypeRoute
-
 from .models import AuthorizeAppRequest, GrantType, OAuthTokenRequest
 from .services import AuthServiceInjection
 
@@ -19,7 +17,7 @@ security = HTTPBasic()
 
 BasicAuthInjection = Annotated[HTTPBasicCredentials, Depends(security)]
 
-router = APIRouter(tags=["security"], route_class=MultiContentTypeRoute)
+router = APIRouter(tags=["security"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 
 
