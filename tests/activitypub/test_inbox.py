@@ -4,7 +4,7 @@ from email.utils import format_datetime
 from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
-from pydantic_core import Url
+from pydantic import HttpUrl
 from respx import MockRouter
 
 from capsule.security.utils import RSAKeyPair, SignedRequestAuth
@@ -37,7 +37,7 @@ def test_inbox(
         actor_username, instance_username, "Hello for the second time :)"
     )
     auth = SignedRequestAuth(
-        public_key_id=Url(actor["publicKey"]["id"]),
+        public_key_id=HttpUrl(actor["publicKey"]["id"]),
         private_key=keys.private_key,
     )
 
@@ -74,7 +74,7 @@ def test_inbox_bad_signature(
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     auth = SignedRequestAuth(
-        public_key_id=Url(actor["publicKey"]["id"]),
+        public_key_id=HttpUrl(actor["publicKey"]["id"]),
         private_key=keys.private_key,
     )
     request = client.build_request("post", instance_inbox, json=payload)

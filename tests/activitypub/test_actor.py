@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from pydantic_core import Url
+from pydantic import HttpUrl
 
 from capsule.settings import CapsuleSettings
 
@@ -20,7 +20,7 @@ def test_actor(
     tmp_path: Path,
 ) -> None:
     capsule_settings.username = "testuser"
-    capsule_settings.hostname = Url("https://example.com")
+    capsule_settings.hostname = HttpUrl("https://example.com")
     capsule_settings.name = "Test Name"
     capsule_settings.summary = "Test Summary"
     capsule_settings.public_key = (

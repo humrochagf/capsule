@@ -162,6 +162,8 @@ select = [
   "YTT",
 ]
 ignore = [
+  # Stdlib module name collision
+  "A005",
   # Same line string implicit string concatenation
   "ISC001",
   # Allow non-abstract empty methods in abstract base classes

@@ -1,7 +1,7 @@
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from pydantic_core import Url
+from pydantic import HttpUrl
 
 from capsule.__about__ import __version__
 from capsule.settings import CapsuleSettings
@@ -11,7 +11,7 @@ from capsule.settings import CapsuleSettings
 def test_well_known_host_meta(
     client: TestClient, capsule_settings: CapsuleSettings, hostname: str
 ) -> None:
-    capsule_settings.hostname = Url(hostname)
+    capsule_settings.hostname = HttpUrl(hostname)
 
     response = client.get("/.well-known/host-meta")
 
@@ -35,7 +35,7 @@ def test_well_known_host_meta(
 def test_well_known_nodeinfo(
     client: TestClient, capsule_settings: CapsuleSettings, hostname: str
 ) -> None:
-    capsule_settings.hostname = Url(hostname)
+    capsule_settings.hostname = HttpUrl(hostname)
 
     response = client.get("/.well-known/nodeinfo")
 

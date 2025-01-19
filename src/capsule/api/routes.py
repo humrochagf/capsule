@@ -2,14 +2,14 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic_core import Url
+from pydantic import HttpUrl
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from capsule.security.models import App, AuthenticatedApp, CreateAppRequest
 from capsule.security.services import AuthServiceInjection
+from capsule.utils import MultiContentTypeRoute
 
 from .service import APIServiceInjection
-from .utils import MultiContentTypeRoute
 
 router = APIRouter(tags=["api"], prefix="/api", route_class=MultiContentTypeRoute)
 
@@ -38,6 +38,6 @@ async def verify_app(
     return AuthenticatedApp(
         name=app.name,
         website=app.website,
-        redirect_uris=[Url(url) for url in str(app.redirect_uris).split()],
+        redirect_uris=[HttpUrl(url) for url in str(app.redirect_uris).split()],
         scopes=token.scopes.split(),
     )

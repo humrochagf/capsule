@@ -5,7 +5,6 @@ import httpx
 from fastapi import Depends
 from loguru import logger
 from pydantic import HttpUrl
-from pydantic_core import Url
 from wheke import get_service
 
 from capsule.database.service import get_database_service
@@ -93,7 +92,7 @@ class ActivityPubService:
 
     async def fetch_actor_from_remote(self, actor_id: HttpUrl) -> Actor | None:
         auth = SignedRequestAuth(
-            public_key_id=Url(self.settings.public_key_id),
+            public_key_id=HttpUrl(self.settings.public_key_id),
             private_key=self.settings.private_key,
         )
         headers = {
@@ -172,7 +171,7 @@ class ActivityPubService:
                 status=FollowStatus.accepted,
             )
             auth = SignedRequestAuth(
-                public_key_id=Url(self.settings.public_key_id),
+                public_key_id=HttpUrl(self.settings.public_key_id),
                 private_key=self.settings.private_key,
             )
             headers = {
@@ -201,7 +200,7 @@ class ActivityPubService:
     async def handle_unfollow(self, entry: InboxEntry) -> InboxEntryStatus:
         actor = await self.get_actor(entry.activity.actor)
         object_data = cast(dict, entry.activity.object)
-        follow_id = Url(object_data.get("id", ""))
+        follow_id = HttpUrl(object_data.get("id", ""))
         follow = await self.followers.get_follow(follow_id)
 
         if (

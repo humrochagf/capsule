@@ -1,7 +1,7 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Response
-from pydantic_core import Url
+from pydantic import HttpUrl
 from respx import MockRouter
 
 from capsule.security.utils import RSAKeyPair, SignedRequestAuth
@@ -30,7 +30,7 @@ def test_delete_actor(
 
     payload = ap_delete_actor(actor_username)
     auth = SignedRequestAuth(
-        public_key_id=Url(actor["publicKey"]["id"]),
+        public_key_id=HttpUrl(actor["publicKey"]["id"]),
         private_key=keys.private_key,
     )
 

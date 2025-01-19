@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import status
 from fastapi.testclient import TestClient
-from pydantic_core import Url
+from pydantic import HttpUrl
 
 from capsule.settings import CapsuleSettings
 
@@ -11,7 +11,7 @@ def test_well_known_webfinger(
     client: TestClient, capsule_settings: CapsuleSettings
 ) -> None:
     capsule_settings.username = "testuser"
-    capsule_settings.hostname = Url("https://example.com")
+    capsule_settings.hostname = HttpUrl("https://example.com")
 
     acct = "acct:testuser@example.com"
     response = client.get(f"/.well-known/webfinger?resource={acct}")
@@ -43,7 +43,7 @@ def test_well_known_webfinger_with_image(
     client: TestClient, capsule_settings: CapsuleSettings, tmp_path: Path
 ) -> None:
     capsule_settings.username = "testuser"
-    capsule_settings.hostname = Url("https://example.com")
+    capsule_settings.hostname = HttpUrl("https://example.com")
 
     profile_image = tmp_path / "test.jpg"
     profile_image.touch()
