@@ -3,7 +3,7 @@ import secrets
 from base64 import b64decode, b64encode
 from collections import namedtuple
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import format_datetime
 from typing import cast
 
@@ -125,7 +125,7 @@ class SignedRequestAuth(Auth):
         )
         request.headers["Host"] = request.url.host
         request.headers["Date"] = format_datetime(
-            datetime.now(tz=timezone.utc),
+            datetime.now(tz=UTC),
             usegmt=True,
         )
         request.headers["Content-Type"] = request.headers.get(

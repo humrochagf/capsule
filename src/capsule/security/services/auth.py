@@ -3,6 +3,8 @@ from typing import Annotated
 import bcrypt
 from fastapi import Depends
 from pydantic import AnyUrl
+from svcs import Container
+from svcs.fastapi import DepContainer
 from wheke import get_service
 
 from capsule.database.service import get_database_service
@@ -22,11 +24,12 @@ class AuthService:
     def __init__(
         self,
         *,
+        settings: CapsuleSettings,
         app_repository: AppRepository,
         authorization_repository: AuthorizationRepository,
         token_repository: TokenRepository,
     ) -> None:
-        self.settings = get_capsule_settings()
+        self.settings = settings
 
         self.apps = app_repository
         self.authorizations = authorization_repository
@@ -111,10 +114,12 @@ class AuthService:
         return token
 
 
-def auth_service_factory() -> AuthService:
-    database_service = get_database_service()
+def auth_service_factory(container: Container) -> AuthService:
+    settings = get_capsule_settings(container)
+    database_service = get_database_service(container)
 
     return AuthService(
+        settings=settings,
         app_repository=AppRepository("apps", database_service),
         authorization_repository=AuthorizationRepository(
             "authorizations", database_service
@@ -123,8 +128,12 @@ def auth_service_factory() -> AuthService:
     )
 
 
-def get_auth_service() -> AuthService:
-    return get_service(AuthService)
+def get_auth_service(container: Container) -> AuthService:
+    return get_service(container, AuthService)
 
 
-AuthServiceInjection = Annotated[AuthService, Depends(get_auth_service)]
+def _auth_service_injection(container: DepContainer) -> AuthService:
+    return get_auth_service(container)
+
+
+AuthServiceInjection = Annotated[AuthService, Depends(_auth_service_injection)]

@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Request, Response
 from fastapi.datastructures import Headers
@@ -8,7 +8,7 @@ from fastapi.routing import APIRoute
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class MultiContentTypeRequest(Request):

@@ -4,6 +4,8 @@ import httpx
 from fastapi import Depends
 from pydantic import FilePath, HttpUrl, MongoDsn
 from pydantic_settings import SettingsConfigDict
+from svcs import Container
+from svcs.fastapi import DepContainer
 from wheke import WhekeSettings, get_settings
 
 from .__about__ import __version__
@@ -49,8 +51,14 @@ class CapsuleSettings(WhekeSettings):
         )
 
 
-def get_capsule_settings() -> CapsuleSettings:
-    return get_settings(CapsuleSettings)
+def get_capsule_settings(container: Container) -> CapsuleSettings:
+    return get_settings(container, CapsuleSettings)
 
 
-CapsuleSettingsInjection = Annotated[CapsuleSettings, Depends(get_capsule_settings)]
+def _capsule_settings_injection(container: DepContainer) -> CapsuleSettings:
+    return get_capsule_settings(container)
+
+
+CapsuleSettingsInjection = Annotated[
+    CapsuleSettings, Depends(_capsule_settings_injection)
+]

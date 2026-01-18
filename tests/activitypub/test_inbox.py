@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 
 from fastapi import status
@@ -81,7 +81,7 @@ def test_inbox_bad_signature(
     auth.sign_request(request)
 
     bad_date = format_datetime(
-        datetime.now(tz=timezone.utc) - timedelta(days=1),
+        datetime.now(tz=UTC) - timedelta(days=1),
         usegmt=True,
     )
     request.headers["date"] = bad_date

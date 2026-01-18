@@ -3,7 +3,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, HttpUrl
 
-from capsule.settings import get_capsule_settings
+from capsule.settings import CapsuleSettings
 
 
 class FollowStatus(str, Enum):
@@ -16,8 +16,7 @@ class Follow(BaseModel):
     actor: HttpUrl
     status: FollowStatus = FollowStatus.pending
 
-    def to_accept_ap(self) -> dict:
-        settings = get_capsule_settings()
+    def to_accept_ap(self, settings: CapsuleSettings) -> dict:
         activity_id = uuid5(NAMESPACE_URL, str(self.id))
 
         return {

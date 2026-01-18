@@ -5,6 +5,8 @@ import httpx
 from fastapi import Depends
 from loguru import logger
 from pydantic import HttpUrl
+from svcs import Container
+from svcs.fastapi import DepContainer
 from wheke import get_service
 
 from capsule.database.service import get_database_service
@@ -27,12 +29,13 @@ class ActivityPubService:
     def __init__(
         self,
         *,
+        settings: CapsuleSettings,
         inbox_repository: InboxRepository,
         actor_repository: ActorRepository,
         followers_repository: FollowRepository,
         following_repository: FollowRepository,
     ) -> None:
-        self.settings = get_capsule_settings()
+        self.settings = settings
 
         self.inbox = inbox_repository
         self.actors = actor_repository
@@ -46,7 +49,7 @@ class ActivityPubService:
         await self.following.create_indexes()
 
     def get_main_actor(self) -> Actor:
-        return self.actors.get_main_actor()
+        return self.actors.get_main_actor(self.settings)
 
     async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
         return await self.actors.get_actor(actor_id)
@@ -181,7 +184,7 @@ class ActivityPubService:
 
             async with httpx.AsyncClient(auth=auth, headers=headers) as client:
                 response = await client.post(
-                    str(actor.inbox), json=follow.to_accept_ap()
+                    str(actor.inbox), json=follow.to_accept_ap(self.settings)
                 )
 
                 if response.is_error:
@@ -226,10 +229,11 @@ class ActivityPubService:
         return InboxEntryStatus.synced
 
 
-def activitypub_service_factory() -> ActivityPubService:
-    database_service = get_database_service()
+def activitypub_service_factory(container: Container) -> ActivityPubService:
+    database_service = get_database_service(container)
 
     return ActivityPubService(
+        settings=get_capsule_settings(container),
         inbox_repository=InboxRepository("inbox", database_service),
         actor_repository=ActorRepository("actors", database_service),
         followers_repository=FollowRepository("followers", database_service),
@@ -237,10 +241,14 @@ def activitypub_service_factory() -> ActivityPubService:
     )
 
 
-def get_activitypub_service() -> ActivityPubService:
-    return get_service(ActivityPubService)
+def get_activitypub_service(container: Container) -> ActivityPubService:
+    return get_service(container, ActivityPubService)
+
+
+def _activitypub_service_injection(container: DepContainer) -> ActivityPubService:
+    return get_activitypub_service(container)
 
 
 ActivityPubServiceInjection = Annotated[
-    ActivityPubService, Depends(get_activitypub_service)
+    ActivityPubService, Depends(_activitypub_service_injection)
 ]

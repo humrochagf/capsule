@@ -31,7 +31,7 @@ class JRDJSONResponse(JSONResponse):
     media_type = "application/jrd+json"
 
 
-@router.get("/.well-known/host-meta")
+@router.get("/.well-known/host-meta", response_model=None)
 async def well_known_host_meta(
     settings: CapsuleSettingsInjection, request: Request
 ) -> Response:

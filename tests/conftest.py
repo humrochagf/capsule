@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import Generator
 
 import pytest
@@ -7,11 +8,13 @@ from httpx import BasicAuth
 from pydantic_core import Url
 from typer.testing import CliRunner
 
-from capsule import app
+from capsule import build_app
 from capsule.__main__ import cli as capsule_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
-from capsule.settings import CapsuleSettings, get_capsule_settings
+from capsule.settings import CapsuleSettings
 from tests.utils import ap_actor
+
+CAPSULE_USERNAME = "testuser"
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -30,15 +33,19 @@ def session_setup_and_teardown() -> Generator:
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client(capsule_settings: CapsuleSettings) -> Generator[TestClient]:
+    with TestClient(build_app(capsule_settings)) as client:
+        yield client
 
 
 @pytest.fixture
-def capsule_settings(rsa_keypair: tuple[str, str]) -> CapsuleSettings:
-    settings = get_capsule_settings()
-    settings.model_config["env_file"] = (".env", ".test.env")
-    CapsuleSettings.__init__(settings)
+def capsule_settings(
+    rsa_keypair: tuple[str, str], pwd_and_hash: tuple[str, str]
+) -> CapsuleSettings:
+    settings = CapsuleSettings(
+        username=CAPSULE_USERNAME,
+        password=pwd_and_hash[1],
+    )
 
     settings.private_key, settings.public_key = rsa_keypair
 
@@ -46,7 +53,9 @@ def capsule_settings(rsa_keypair: tuple[str, str]) -> CapsuleSettings:
 
 
 @pytest.fixture
-def logged_client(client: TestClient, capsule_settings: CapsuleSettings) -> TestClient:
+def logged_client(
+    client: TestClient, capsule_settings: CapsuleSettings, pwd_and_hash: tuple[str, str]
+) -> TestClient:
     payload = {
         "client_name": "Client",
         "redirect_uris": "https://example.com",
@@ -55,7 +64,7 @@ def logged_client(client: TestClient, capsule_settings: CapsuleSettings) -> Test
     response = client.post("/api/v1/apps", json=payload)
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -93,6 +102,18 @@ def logged_client(client: TestClient, capsule_settings: CapsuleSettings) -> Test
 @pytest.fixture
 def rsa_keypair() -> tuple[str, str]:
     return generate_rsa_keypair()
+
+
+@pytest.fixture(scope="session")
+def pwd_and_hash() -> tuple[str, str]:
+    pwd = secrets.token_urlsafe()
+
+    runner = CliRunner()
+
+    result = runner.invoke(capsule_cli, ["security", "hashpwd", pwd])
+    assert result.exit_code == 0
+
+    return pwd, result.stdout.strip()
 
 
 @pytest.fixture

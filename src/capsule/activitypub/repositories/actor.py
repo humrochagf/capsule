@@ -4,6 +4,7 @@ from pydantic_core import to_jsonable_python
 
 from capsule.activitypub.models import Actor
 from capsule.database.service import DatabaseService
+from capsule.settings import CapsuleSettings
 
 
 class ActorRepository:
@@ -15,8 +16,8 @@ class ActorRepository:
     async def create_indexes(self) -> None:
         await self.collection.create_index("id", unique=True)
 
-    def get_main_actor(self) -> Actor:
-        return Actor.make_main_actor()
+    def get_main_actor(self, settings: CapsuleSettings) -> Actor:
+        return Actor.make_main_actor(settings)
 
     async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
         data = await self.collection.find_one({"id": {"$eq": str(actor_id)}})

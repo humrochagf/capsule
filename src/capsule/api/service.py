@@ -1,6 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends
+from svcs import Container
+from svcs.fastapi import DepContainer
 from wheke import get_service
 
 from capsule.security.models import App, CreateAppRequest
@@ -21,14 +23,18 @@ class APIService:
         return await self.auth.create_app(request)
 
 
-def api_service_factory() -> APIService:
+def api_service_factory(container: Container) -> APIService:
     return APIService(
-        auth_service=get_auth_service(),
+        auth_service=get_auth_service(container),
     )
 
 
-def get_api_service() -> APIService:
-    return get_service(APIService)
+def get_api_service(container: Container) -> APIService:
+    return get_service(container, APIService)
 
 
-APIServiceInjection = Annotated[APIService, Depends(get_api_service)]
+def _api_service_injection(container: DepContainer) -> APIService:
+    return get_api_service(container)
+
+
+APIServiceInjection = Annotated[APIService, Depends(_api_service_injection)]

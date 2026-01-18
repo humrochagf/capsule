@@ -3,7 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-from capsule.settings import get_capsule_settings
+from capsule.settings import CapsuleSettings
 
 
 class PublicKey(BaseModel):
@@ -34,8 +34,7 @@ class Actor(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def make_main_actor(cls) -> "Actor":
-        settings = get_capsule_settings()
+    def make_main_actor(cls, settings: CapsuleSettings) -> "Actor":
         data: dict = {
             "@context": [
                 "https://www.w3.org/ns/activitystreams",

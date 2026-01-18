@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Annotated, cast
 
@@ -7,6 +7,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import Depends, Request
+from svcs import Container
+from svcs.fastapi import DepContainer
 from wheke import get_service
 
 from ..exception import VerificationBadFormatError, VerificationError
@@ -23,11 +25,9 @@ class SignatureService:
                 raise VerificationBadFormatError(msg)
 
         if "date" in request.headers:
-            expiration = parsedate_to_datetime(request.headers["date"]).astimezone(
-                timezone.utc
-            )
+            expiration = parsedate_to_datetime(request.headers["date"]).astimezone(UTC)
 
-            if datetime.now(timezone.utc) - expiration > timedelta(seconds=60):
+            if datetime.now(UTC) - expiration > timedelta(seconds=60):
                 msg = "Expired digest"
                 raise VerificationBadFormatError(msg)
 
@@ -76,12 +76,18 @@ class SignatureService:
             raise VerificationError(msg) from exc
 
 
-def signature_service_factory() -> SignatureService:
+def signature_service_factory(_: Container) -> SignatureService:
     return SignatureService()
 
 
-def get_signature_service() -> SignatureService:
-    return get_service(SignatureService)
+def get_signature_service(container: Container) -> SignatureService:
+    return get_service(container, SignatureService)
 
 
-SignatureServiceInjection = Annotated[SignatureService, Depends(get_signature_service)]
+def _signature_service_injection(container: DepContainer) -> SignatureService:
+    return get_signature_service(container)
+
+
+SignatureServiceInjection = Annotated[
+    SignatureService, Depends(_signature_service_injection)
+]

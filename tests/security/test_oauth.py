@@ -9,6 +9,7 @@ from capsule.settings import CapsuleSettings
 def test_get_authorize(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Get Authorize Test",
@@ -19,7 +20,7 @@ def test_get_authorize(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     params = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -59,6 +60,7 @@ def test_get_authorize_bad_auth(
 def test_get_authorize_bad_scope(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Get Bad Scope Test",
@@ -69,7 +71,7 @@ def test_get_authorize_bad_scope(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     params = {
         "client_id": app["client_id"],
         "scope": "bad_scope",
@@ -84,6 +86,7 @@ def test_get_authorize_bad_scope(
 def test_get_authorize_bad_redirect_uri(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Get Bad Redirect URI Test",
@@ -94,7 +97,7 @@ def test_get_authorize_bad_redirect_uri(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     params = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -109,8 +112,9 @@ def test_get_authorize_bad_redirect_uri(
 def test_get_authorize_no_client(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     params = {
         "client_id": "not_found",
         "scope": "read",
@@ -125,6 +129,7 @@ def test_get_authorize_no_client(
 def test_post_authorize(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Post Authorize Test",
@@ -135,7 +140,7 @@ def test_post_authorize(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -151,6 +156,7 @@ def test_post_authorize(
 def test_post_authorize_url(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Post Authorize Url Test",
@@ -161,7 +167,7 @@ def test_post_authorize_url(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -205,6 +211,7 @@ def test_post_authorize_bad_auth(
 def test_post_authorize_bad_scope(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Post Bad Scope Test",
@@ -215,7 +222,7 @@ def test_post_authorize_bad_scope(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": "bad_scope",
@@ -230,6 +237,7 @@ def test_post_authorize_bad_scope(
 def test_post_authorize_bad_redirect_uri(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Post Bad Redirect URI Test",
@@ -240,7 +248,7 @@ def test_post_authorize_bad_redirect_uri(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -255,8 +263,9 @@ def test_post_authorize_bad_redirect_uri(
 def test_post_authorize_no_client(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": "not_found",
         "scope": "read",
@@ -289,6 +298,7 @@ def test_token_client_credentials(client: TestClient) -> None:
 def test_token_authorization_code(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Token Authorization Code Test",
@@ -299,7 +309,7 @@ def test_token_authorization_code(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],
@@ -347,6 +357,7 @@ def test_token_authorization_code_no_app(client: TestClient) -> None:
 def test_token_authorization_code_bad_redirect_uri(
     client: TestClient,
     capsule_settings: CapsuleSettings,
+    pwd_and_hash: tuple[str, str],
 ) -> None:
     payload = {
         "client_name": "Token Authorization Code bad redirect Test",
@@ -357,7 +368,7 @@ def test_token_authorization_code_bad_redirect_uri(
     assert response.status_code == status.HTTP_200_OK
 
     app = response.json()
-    auth = BasicAuth(username=capsule_settings.username, password="p4ssw0rd")
+    auth = BasicAuth(username=capsule_settings.username, password=pwd_and_hash[0])
     payload = {
         "client_id": app["client_id"],
         "scope": app["scopes"],

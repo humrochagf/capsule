@@ -1,13 +1,9 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "capsule"
-dynamic = ["version"]
-description = 'Single user dev focused ActivityPub server'
+version = "0.0.1"
+description = "Single user dev focused ActivityPub server"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 keywords = []
 authors = [
@@ -16,12 +12,11 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
-  "Programming Language :: Python",
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Internet",
@@ -46,11 +41,8 @@ Documentation = "https://github.com/humrochagf/capsule#readme"
 Issues = "https://github.com/humrochagf/capsule/issues"
 Source = "https://github.com/humrochagf/capsule"
 
-[tool.hatch.version]
-path = "src/capsule/__about__.py"
-
-[tool.hatch.envs.default]
-dependencies = [
+[dependency-groups]
+dev = [
   "coolname",
   "isort",
   "mypy",
@@ -58,16 +50,6 @@ dependencies = [
   "pytest-cov",
   "respx",
   "ruff",
-]
-
-[tool.hatch.envs.default.scripts]
-cov = "pytest --cov"
-tests = "pytest {args:tests}"
-typing = "mypy --install-types --non-interactive {args:src/capsule tests}"
-lint = "ruff check {args:.}"
-fmt = [
-  "isort {args:.}",
-  "ruff format {args:.}",
 ]
 
 [tool.coverage.run]
@@ -170,6 +152,8 @@ ignore = [
   "B027",
   # Allow boolean positional values in function calls, like `dict.get(... True)`
   "FBT003",
+  # Ignore public binding
+  "S104",
   # Ignore checks for possible passwords
   "S105", "S106", "S107",
   # Ignore complexity
