@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.12", "3.13", "3.14"]
 
     services:
       mongodb:
@@ -29,31 +29,22 @@ jobs:
           - 27017:27017
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Setup uv
+      uses: https://github.com/astral-sh/setup-uv@v6
       with:
+        enable-cache: true
         python-version: ${{ matrix.python-version }}
-        cache: pip
-
-    - name: Ensure latest pip
-      run: |
-        python -m pip install --upgrade pip
-
-    - name: Install dependencies
-      run: |
-        python -m pip install hatch
-        hatch env create
-
-    - name: Typecheck
-      run: |
-        hatch run typing
 
     - name: Lint
       run: |
-        hatch run lint
+        uv run ruff check
+
+    - name: Typecheck
+      run: |
+        uv run mypy .
 
     - name: Tests
       run: |
-        hatch run cov
+        uv run pytest --cov

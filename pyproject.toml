@@ -52,6 +52,11 @@ dev = [
   "ruff",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+
 [tool.coverage.run]
 source_pkgs = ["capsule", "tests"]
 branch = false
