@@ -54,7 +54,7 @@ def dropdb(ctx: Context) -> None:
 
 
 @cli.command(short_help="Start http server")
-def start_server() -> None:
+def start_server() -> None:  # pragma: no cover
     config = uvicorn.Config(
         build_app,
         host="0.0.0.0",
