@@ -146,7 +146,7 @@ def test_inbox_request_without_actor(
     payload.pop("actor")
 
     response = client.post(f"/actors/{instance_username}/inbox", json=payload)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_inbox_failed_to_fetch_actor(

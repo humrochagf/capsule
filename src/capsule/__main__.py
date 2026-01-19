@@ -1,7 +1,7 @@
-import asyncio
-
+import anyio
 import uvicorn
 from rich.console import Console
+from svcs import Container
 from typer import Context
 from wheke import get_container
 
@@ -14,30 +14,30 @@ cli = build_cli()
 console = Console(highlight=False)
 
 
-async def _syncdb(ctx: Context) -> None:
+async def _syncdb(container: Container) -> None:
     console.print("Acquiring services to SyncDB...")
 
-    with get_container(ctx) as container:
-        activitypub = get_activitypub_service(container)
-        console.print("ActivityPub service [green]acquired[/]")
+    activitypub = get_activitypub_service(container)
+    console.print("ActivityPub service [green]acquired[/]")
 
-        auth = get_auth_service(container)
-        console.print("Auth service [green]acquired[/]")
+    auth = get_auth_service(container)
+    console.print("Auth service [green]acquired[/]")
 
-        console.print("Syncing repositories...")
+    console.print("Syncing repositories...")
 
-        await activitypub.setup_repositories()
-        console.print("ActivityPub repositories [green]synced[/]")
+    await activitypub.setup_repositories()
+    console.print("ActivityPub repositories [green]synced[/]")
 
-        await auth.setup_repositories()
-        console.print("Auth repositories [green]synced[/]")
+    await auth.setup_repositories()
+    console.print("Auth repositories [green]synced[/]")
 
     console.print("SyncDB completed!")
 
 
 @cli.command(short_help="Create collections and indexes")
 def syncdb(ctx: Context) -> None:
-    asyncio.run(_syncdb(ctx))
+    container = get_container(ctx)
+    anyio.run(_syncdb, container)
 
 
 @cli.command(short_help="Drop the whole database")
@@ -48,7 +48,7 @@ def dropdb(ctx: Context) -> None:
     console.print("[yellow]This is a destructible operation[/]")
 
     database = get_database_service(container)
-    asyncio.run(database.drop_db())
+    anyio.run(database.drop_db)
 
     console.print("DropDB completed!")
 
@@ -70,4 +70,4 @@ def start_server() -> None:  # pragma: no cover
 
     console.print("Starting server...")
 
-    asyncio.run(server.serve())
+    anyio.run(server.serve)
