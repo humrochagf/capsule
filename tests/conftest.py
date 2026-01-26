@@ -45,6 +45,7 @@ def capsule_settings(
     settings = CapsuleSettings(
         username=CAPSULE_USERNAME,
         password=pwd_and_hash[1],
+        connection_string=":memory:",
     )
 
     settings.private_key, settings.public_key = rsa_keypair

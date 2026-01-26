@@ -151,7 +151,7 @@ async def actor_inbox(
     else:
         logger.bind(actor_id=activity.actor).info("New actor, skipping signature check")
 
-    entry = await activitypub.create_inbox_entry(InboxEntry(activity=activity))
+    entry = activitypub.create_inbox_entry(InboxEntry(activity=activity))
 
     background_tasks.add_task(activitypub.handle_activity, entry)
 
@@ -181,4 +181,4 @@ async def system_inbox_sync(
 
 @router.post("/system/inbox/cleanup", status_code=status.HTTP_202_ACCEPTED)
 async def system_inbox_cleanup(service: ActivityPubServiceInjection) -> None:
-    await service.cleanup_inbox_entries()
+    service.cleanup_inbox_entries()

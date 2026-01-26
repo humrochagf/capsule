@@ -1,43 +1,75 @@
-from collections.abc import AsyncGenerator
+from collections.abc import Iterator
+from typing import cast
 
-from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic_core import to_jsonable_python
+from real_ladybug import QueryResult
 
 from capsule.activitypub.models import InboxEntry, InboxEntryStatus
-from capsule.database.service import DatabaseService
+from capsule.database.repository import BaseDBRepository
 from capsule.utils import utc_now
 
 
-class InboxRepository:
-    collection: AsyncIOMotorCollection
+class InboxRepository(BaseDBRepository):
+    def create_table(self) -> None:
+        with self.db.get_connection() as conn:
+            conn.execute(
+                """CREATE NODE TABLE IF NOT EXISTS $table_name (
+                    id INT64 PRIMARY KEY,
+                    status STRING,
+                    activity JSON,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                );""",
+                parameters=self.build_parameters(),
+            )
 
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("created_at")
-
-    async def create_entry(self, entry: InboxEntry) -> InboxEntry:
-        result = await self.collection.insert_one(to_jsonable_python(entry))
-        entry.id = result.inserted_id
+    def create_entry(self, entry: InboxEntry) -> InboxEntry:
+        with self.db.get_connection() as conn:
+            result = cast(QueryResult, conn.execute(
+                """CREATE (n:$table_name {
+                    status: $status,
+                    activity: $activity,
+                    created_at: $created_at,
+                    updated_at: $updated_at
+                })
+                RETURN n.id as id;""",
+                parameters=self.build_parameters({
+                    "status": entry.status,
+                    "activity": to_jsonable_python(entry.activity),
+                    "created_at": entry.created_at,
+                    "updated_at": entry.updated_at,
+                }),
+            )).rows_as_dict()
+            entry.id = cast(dict, result.get_next())["id"]
 
         return entry
 
-    async def list_entries(
+    def list_entries(
         self, status: InboxEntryStatus
-    ) -> AsyncGenerator[InboxEntry]:
-        cursor = self.collection.find({"status": {"$eq": status}})
+    ) -> Iterator[InboxEntry]:
+        with self.db.get_connection() as conn:
+            result = cast(QueryResult, conn.execute(
+                """MATCH (n:$table_name)
+                WHERE n.status = $status
+                RETURN n as data;""",
+                parameters=self.build_parameters({
+                    "status": status,
+                }),
+            )).rows_as_dict()
 
-        async for entry in cursor:
-            yield InboxEntry(**entry)
+            for entry in cast(Iterator[dict], result):
+                yield InboxEntry(**entry["data"])
 
-    async def update_entries_state(self, ids: list, status: InboxEntryStatus) -> None:
-        data = {"status": status, "updated_at": utc_now()}
-
-        await self.collection.update_many(
-            {"_id": {"$in": ids}},
-            {"$set": to_jsonable_python(data)},
-        )
-
-    async def delete_entries(self) -> None:
-        await self.collection.delete_many({})
+    def update_entries_state(self, ids: list, status: InboxEntryStatus) -> None:
+        with self.db.get_connection() as conn:
+            conn.execute(
+                """MATCH (n:$table_name)
+                WHERE n.id IN $ids
+                SET n.status = $status
+                SET n.updated_at = $updated_at;""",
+                parameters=self.build_parameters({
+                    "ids": ids,
+                    "status": status,
+                    "updated_at": utc_now(),
+                }),
+            )

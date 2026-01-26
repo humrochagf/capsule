@@ -2,7 +2,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from bson.objectid import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from capsule.utils import utc_now
@@ -31,7 +30,7 @@ class InboxEntryStatus(str, Enum):
 
 
 class InboxEntry(BaseModel):
-    id: ObjectId | None = Field(alias="_id", default=None, exclude=True)
+    id: int | None = Field(alias="_id", default=None, exclude=True)
     status: InboxEntryStatus = InboxEntryStatus.created
     activity: Activity
     created_at: datetime = Field(default_factory=utc_now)

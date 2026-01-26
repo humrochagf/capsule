@@ -43,7 +43,7 @@ class ActivityPubService:
         self.following = following_repository
 
     async def setup_repositories(self) -> None:
-        await self.inbox.create_indexes()
+        self.inbox.create_table()
         await self.actors.create_indexes()
         await self.followers.create_indexes()
         await self.following.create_indexes()
@@ -90,8 +90,8 @@ class ActivityPubService:
 
         return webfinger
 
-    async def create_inbox_entry(self, entry: InboxEntry) -> InboxEntry:
-        return await self.inbox.create_entry(entry)
+    def create_inbox_entry(self, entry: InboxEntry) -> InboxEntry:
+        return self.inbox.create_entry(entry)
 
     async def fetch_actor_from_remote(self, actor_id: HttpUrl) -> Actor | None:
         auth = SignedRequestAuth(
@@ -128,12 +128,12 @@ class ActivityPubService:
 
         return actor
 
-    async def cleanup_inbox_entries(self) -> None:
-        await self.inbox.delete_entries()
+    def cleanup_inbox_entries(self) -> None:
+        self.inbox.delete_all()
 
     async def sync_inbox_entries(self, status: InboxEntryStatus) -> None:
         if status != InboxEntryStatus.synced:
-            async for entry in self.inbox.list_entries(status):
+            for entry in self.inbox.list_entries(status):
                 await self.handle_activity(entry)
 
     async def handle_activity(self, entry: InboxEntry) -> None:
@@ -161,7 +161,7 @@ class ActivityPubService:
         except EnsureActorError:
             entry_status = InboxEntryStatus.error
 
-        await self.inbox.update_entries_state([entry_id], entry_status)
+        self.inbox.update_entries_state([entry_id], entry_status)
 
     async def handle_follow(self, entry: InboxEntry) -> InboxEntryStatus:
         actor = await self.ensure_actor(entry)

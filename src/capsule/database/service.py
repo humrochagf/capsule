@@ -1,8 +1,7 @@
-from motor.motor_asyncio import (
-    AsyncIOMotorClient,
-    AsyncIOMotorCollection,
-    AsyncIOMotorDatabase,
-)
+from collections.abc import Generator
+from contextlib import contextmanager
+
+from real_ladybug import Connection, Database
 from svcs import Container
 from wheke import get_service
 
@@ -12,24 +11,30 @@ from capsule.settings import CapsuleSettings, get_capsule_settings
 class DatabaseService:
     settings: CapsuleSettings
 
-    client: AsyncIOMotorClient
-    database: AsyncIOMotorDatabase
+    db: Database
 
     def __init__(self, *, settings: CapsuleSettings) -> None:
         self.settings = settings
 
-        self.client = AsyncIOMotorClient(f"{settings.connection_string}")
-        self.database = self.client[settings.database_name]
+        self.db = Database(settings.connection_string)
 
-    def get_collection(self, name: str) -> AsyncIOMotorCollection:
-        return self.database[name]
+    def init_db(self) -> None:
+        with self.get_connection() as connection:
+            connection.execute(
+                "INSTALL json;"
+                "LOAD json;"
+            )
 
-    async def drop_db(self) -> None:
-        await self.client.drop_database(self.settings.database_name)
+    @contextmanager
+    def get_connection(self) -> Generator[Connection]:
+        with Connection(self.db) as connection:
+            yield connection
 
 
 def database_service_factory(container: Container) -> DatabaseService:
-    return DatabaseService(settings=get_capsule_settings(container))
+    service = DatabaseService(settings=get_capsule_settings(container))
+    service.init_db()
+    return service
 
 
 def get_database_service(container: Container) -> DatabaseService:

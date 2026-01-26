@@ -2,7 +2,7 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends
-from pydantic import FilePath, HttpUrl, MongoDsn
+from pydantic import FilePath, HttpUrl
 from pydantic_settings import SettingsConfigDict
 from svcs import Container
 from svcs.fastapi import DepContainer
@@ -15,7 +15,7 @@ class CapsuleSettings(WhekeSettings):
     project_name: str = "Capsule"
     hostname: HttpUrl = HttpUrl("http://localhost:8000")
 
-    connection_string: MongoDsn = MongoDsn("mongodb://localhost:27017")
+    connection_string: str = "database.lbug"
     database_name: str = "capsule"
 
     username: str = ""

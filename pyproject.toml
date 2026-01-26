@@ -29,6 +29,7 @@ dependencies = [
   "loguru",
   "motor",
   "python-multipart",
+  "real_ladybug",
   "uvicorn[standard]",
   "wheke",
 ]
