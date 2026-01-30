@@ -1,14 +1,15 @@
-FROM python:3.12-alpine
+FROM astral/uv:python3.13-alpine
 
-ENV PIP_ROOT_USER_ACTION=ignore
+ENV UV_COMPILE_BYTECODE=1
 
-COPY . /capsule
+COPY . /app
 
-WORKDIR /capsule
+WORKDIR /app
 
-RUN pip install --upgrade pip
-RUN pip install .
+RUN uv sync --no-dev
 
-EXPOSE 8000
+EXPOSE 9292
 
-ENTRYPOINT ["uvicorn", "capsule:app", "--host=0.0.0.0", "--workers=3", "--proxy-headers", "--forwarded-allow-ips=*"]
+ENTRYPOINT ["uv", "run", "--no-sync", "capsule"]
+
+CMD ["start-server"]
