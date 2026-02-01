@@ -1,23 +1,22 @@
-from motor.motor_asyncio import AsyncIOMotorCollection
-from pydantic_core import to_jsonable_python
-
-from capsule.database.service import DatabaseService
+from sqlmodel import select
+from wheke_sqlmodel import SQLModelService
 
 from ..models import App
 
 
 class AppRepository:
-    collection: AsyncIOMotorCollection
+    db: SQLModelService
 
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("client_id", unique=True)
+    def __init__(self, sqlmodel_service: SQLModelService) -> None:
+        self.db = sqlmodel_service
 
     async def create_app(self, app: App) -> None:
-        await self.collection.insert_one(to_jsonable_python(app))
+        async with self.db.session as session:
+            session.add(app)
+            await session.commit()
+            await session.refresh(app)
 
     async def get_app(self, client_id: str) -> App | None:
-        data = await self.collection.find_one({"client_id": {"$eq": client_id}})
-        return App(**data) if data else None
+        async with self.db.session as session:
+            stmt = select(App).where(App.client_id == client_id)
+            return (await session.exec(stmt)).first()

@@ -31,6 +31,7 @@ dependencies = [
   "python-multipart",
   "uvicorn[standard]",
   "wheke",
+  "wheke-sqlmodel",
 ]
 
 [project.scripts]

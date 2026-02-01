@@ -1,5 +1,6 @@
 import secrets
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from coolname import generate
@@ -7,8 +8,9 @@ from fastapi.testclient import TestClient
 from httpx import BasicAuth
 from pydantic_core import Url
 from typer.testing import CliRunner
+from wheke_sqlmodel import SQLITE_DRIVER, SQLModelSettings
 
-from capsule import build_app
+from capsule import build_app, build_cli
 from capsule.__main__ import cli as capsule_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings
@@ -34,17 +36,35 @@ def session_setup_and_teardown() -> Generator:
 
 @pytest.fixture
 def client(capsule_settings: CapsuleSettings) -> Generator[TestClient]:
+    runner = CliRunner()
+    cli = build_cli(capsule_settings)
+
+    # setup
+    result = runner.invoke(cli, ["sqlmodel", "create-db"])
+    assert result.exit_code == 0
+
     with TestClient(build_app(capsule_settings)) as client:
         yield client
+
+    # teardown
+    result = runner.invoke(cli, ["sqlmodel", "drop-db"])
+    assert result.exit_code == 0
 
 
 @pytest.fixture
 def capsule_settings(
-    rsa_keypair: tuple[str, str], pwd_and_hash: tuple[str, str]
+    tmp_path: Path, rsa_keypair: tuple[str, str], pwd_and_hash: tuple[str, str]
 ) -> CapsuleSettings:
+    sqlmodel_settings = SQLModelSettings(
+        connection_string=f"{SQLITE_DRIVER}:///{tmp_path / 'test.db'}",
+        echo_operations=True,
+    )
     settings = CapsuleSettings(
         username=CAPSULE_USERNAME,
         password=pwd_and_hash[1],
+        features={
+            sqlmodel_settings.__feature_name__: sqlmodel_settings.model_dump(),
+        },
     )
 
     settings.private_key, settings.public_key = rsa_keypair

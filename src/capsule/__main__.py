@@ -8,7 +8,6 @@ from wheke import get_container
 from . import build_app, build_cli
 from .activitypub.service import get_activitypub_service
 from .database.service import get_database_service
-from .security.services import get_auth_service
 
 cli = build_cli()
 console = Console(highlight=False)
@@ -20,16 +19,10 @@ async def _syncdb(container: Container) -> None:
     activitypub = get_activitypub_service(container)
     console.print("ActivityPub service [green]acquired[/]")
 
-    auth = get_auth_service(container)
-    console.print("Auth service [green]acquired[/]")
-
     console.print("Syncing repositories...")
 
     await activitypub.setup_repositories()
     console.print("ActivityPub repositories [green]synced[/]")
-
-    await auth.setup_repositories()
-    console.print("Auth repositories [green]synced[/]")
 
     console.print("SyncDB completed!")
 

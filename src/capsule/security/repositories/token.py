@@ -1,24 +1,22 @@
-from motor.motor_asyncio import AsyncIOMotorCollection
-from pydantic_core import to_jsonable_python
-
-from capsule.database.service import DatabaseService
+from sqlmodel import select
+from wheke_sqlmodel import SQLModelService
 
 from ..models import Token
 
 
 class TokenRepository:
-    collection: AsyncIOMotorCollection
+    db: SQLModelService
 
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("client_id", unique=True)
-        await self.collection.create_index("token")
+    def __init__(self, sqlmodel_service: SQLModelService) -> None:
+        self.db = sqlmodel_service
 
     async def create_token(self, token: Token) -> None:
-        await self.collection.insert_one(to_jsonable_python(token))
+        async with self.db.session as session:
+            session.add(token)
+            await session.commit()
+            await session.refresh(token)
 
     async def get_token(self, access_token: str) -> Token | None:
-        data = await self.collection.find_one({"token": {"$eq": access_token}})
-        return Token(**data) if data else None
+        async with self.db.session as session:
+            stmt = select(Token).where(Token.token == access_token)
+            return (await session.exec(stmt)).first()

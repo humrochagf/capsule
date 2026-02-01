@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from enum import Enum
 
-from pydantic import AnyUrl, BaseModel, Field, HttpUrl
+from pydantic import AnyUrl, BaseModel, HttpUrl
+from sqlmodel import Field, SQLModel
 
+from capsule.types import DateTimeType, UrlType
 from capsule.utils import utc_now
 
 from .utils import client_id, secret_token
@@ -46,30 +48,30 @@ class AuthenticatedApp(BaseModel):
     scopes: list[str]
 
 
-class App(BaseModel):
+class App(SQLModel, table=True):
     name: str
-    website: HttpUrl | None
-    redirect_uris: AnyUrl
-    client_id: str = Field(default_factory=client_id)
+    website: HttpUrl | None = Field(sa_type=UrlType, nullable=True)
+    redirect_uris: AnyUrl = Field(sa_type=UrlType)
+    client_id: str = Field(default_factory=client_id, primary_key=True)
     client_secret: str = Field(default_factory=secret_token)
     scopes: str
-    created_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTimeType)
 
 
-class Authorization(BaseModel):
-    client_id: str
+class Authorization(SQLModel, table=True):
+    client_id: str = Field(primary_key=True)
     scopes: str
-    redirect_uri: AnyUrl
-    code: str = Field(default_factory=secret_token)
-    created_at: datetime = Field(default_factory=utc_now)
+    redirect_uri: AnyUrl = Field(sa_type=UrlType)
+    code: str = Field(default_factory=secret_token, unique=True)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTimeType)
 
     @property
     def has_expired(self) -> bool:
         return utc_now() - self.created_at > AUTHORIZATION_TTL
 
 
-class Token(BaseModel):
-    client_id: str
+class Token(SQLModel, table=True):
+    client_id: str = Field(primary_key=True)
     scopes: str
-    token: str = Field(default_factory=secret_token)
-    created_at: datetime = Field(default_factory=utc_now)
+    token: str = Field(default_factory=secret_token, unique=True)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTimeType)

@@ -1,28 +1,30 @@
-from motor.motor_asyncio import AsyncIOMotorCollection
-from pydantic_core import to_jsonable_python
-
-from capsule.database.service import DatabaseService
+from sqlalchemy.dialects.sqlite import insert
+from sqlmodel import select
+from wheke_sqlmodel import SQLModelService
 
 from ..models import Authorization
 
 
 class AuthorizationRepository:
-    collection: AsyncIOMotorCollection
+    db: SQLModelService
 
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("client_id", unique=True)
-        await self.collection.create_index("code", unique=True)
+    def __init__(self, sqlmodel_service: SQLModelService) -> None:
+        self.db = sqlmodel_service
 
     async def upsert_authorization(self, authorization: Authorization) -> None:
-        await self.collection.replace_one(
-            {"client_id": {"$eq": str(authorization.client_id)}},
-            to_jsonable_python(authorization),
-            upsert=True,
-        )
+        async with self.db.session as session:
+            update_data = authorization.model_dump(
+                exclude={"client_id", "created_at"},
+            )
+            stmt = insert(Authorization).values(authorization.model_dump())
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["client_id"],
+                set_=update_data,
+            )
+            await session.exec(stmt)
+            await session.commit()
 
     async def get_authorization(self, code: str) -> Authorization | None:
-        data = await self.collection.find_one({"code": {"$eq": code}})
-        return Authorization(**data) if data else None
+        async with self.db.session as session:
+            stmt = select(Authorization).where(Authorization.code == code)
+            return (await session.exec(stmt)).first()

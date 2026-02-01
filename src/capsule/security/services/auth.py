@@ -6,8 +6,8 @@ from pydantic import AnyUrl
 from svcs import Container
 from svcs.fastapi import DepContainer
 from wheke import get_service
+from wheke_sqlmodel import get_sqlmodel_service
 
-from capsule.database.service import get_database_service
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
 from ..models import App, Authorization, CreateAppRequest, OAuthTokenRequest, Token
@@ -34,11 +34,6 @@ class AuthService:
         self.apps = app_repository
         self.authorizations = authorization_repository
         self.tokens = token_repository
-
-    async def setup_repositories(self) -> None:
-        await self.apps.create_indexes()
-        await self.authorizations.create_indexes()
-        await self.tokens.create_indexes()
 
     async def create_app(self, request: CreateAppRequest) -> App:
         app = App(
@@ -116,15 +111,13 @@ class AuthService:
 
 def auth_service_factory(container: Container) -> AuthService:
     settings = get_capsule_settings(container)
-    database_service = get_database_service(container)
+    sqlmodel_service = get_sqlmodel_service(container)
 
     return AuthService(
         settings=settings,
-        app_repository=AppRepository("apps", database_service),
-        authorization_repository=AuthorizationRepository(
-            "authorizations", database_service
-        ),
-        token_repository=TokenRepository("tokens", database_service),
+        app_repository=AppRepository(sqlmodel_service),
+        authorization_repository=AuthorizationRepository(sqlmodel_service),
+        token_repository=TokenRepository(sqlmodel_service),
     )
 
 
