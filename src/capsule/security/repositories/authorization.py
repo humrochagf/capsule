@@ -1,16 +1,11 @@
 from sqlalchemy.dialects.sqlite import insert
 from sqlmodel import select
-from wheke_sqlmodel import SQLModelService
+from wheke_sqlmodel import SQLModelRepository
 
 from ..models import Authorization
 
 
-class AuthorizationRepository:
-    db: SQLModelService
-
-    def __init__(self, sqlmodel_service: SQLModelService) -> None:
-        self.db = sqlmodel_service
-
+class AuthorizationRepository(SQLModelRepository):
     async def upsert_authorization(self, authorization: Authorization) -> None:
         async with self.db.session as session:
             update_data = authorization.model_dump(

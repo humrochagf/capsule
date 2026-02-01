@@ -1,15 +1,10 @@
 from sqlmodel import select
-from wheke_sqlmodel import SQLModelService
+from wheke_sqlmodel import SQLModelRepository
 
 from ..models import Token
 
 
-class TokenRepository:
-    db: SQLModelService
-
-    def __init__(self, sqlmodel_service: SQLModelService) -> None:
-        self.db = sqlmodel_service
-
+class TokenRepository(SQLModelRepository):
     async def create_token(self, token: Token) -> None:
         async with self.db.session as session:
             session.add(token)

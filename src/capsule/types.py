@@ -25,7 +25,6 @@ class UrlType(TypeDecorator[AnyUrl]):
         return AnyUrl(value) if value else None
 
 
-
 class DateTimeType(TypeDecorator[datetime]):
     impl = DateTime(timezone=True)
     cache_ok = True

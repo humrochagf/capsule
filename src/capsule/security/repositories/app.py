@@ -1,15 +1,10 @@
 from sqlmodel import select
-from wheke_sqlmodel import SQLModelService
+from wheke_sqlmodel import SQLModelRepository
 
 from ..models import App
 
 
-class AppRepository:
-    db: SQLModelService
-
-    def __init__(self, sqlmodel_service: SQLModelService) -> None:
-        self.db = sqlmodel_service
-
+class AppRepository(SQLModelRepository):
     async def create_app(self, app: App) -> None:
         async with self.db.session as session:
             session.add(app)
