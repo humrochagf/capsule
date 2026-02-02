@@ -8,6 +8,7 @@ from pydantic import HttpUrl
 from svcs import Container
 from svcs.fastapi import DepContainer
 from wheke import get_service
+from wheke_sqlmodel import get_sqlmodel_service
 
 from capsule.database.service import get_database_service
 from capsule.security.utils import SignedRequestAuth
@@ -43,7 +44,6 @@ class ActivityPubService:
         self.following = following_repository
 
     async def setup_repositories(self) -> None:
-        await self.inbox.create_indexes()
         await self.actors.create_indexes()
         await self.followers.create_indexes()
         await self.following.create_indexes()
@@ -231,10 +231,11 @@ class ActivityPubService:
 
 def activitypub_service_factory(container: Container) -> ActivityPubService:
     database_service = get_database_service(container)
+    sqlmodel_service = get_sqlmodel_service(container)
 
     return ActivityPubService(
         settings=get_capsule_settings(container),
-        inbox_repository=InboxRepository("inbox", database_service),
+        inbox_repository=InboxRepository(sqlmodel_service),
         actor_repository=ActorRepository("actors", database_service),
         followers_repository=FollowRepository("followers", database_service),
         following_repository=FollowRepository("following", database_service),

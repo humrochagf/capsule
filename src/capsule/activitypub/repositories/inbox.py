@@ -1,43 +1,39 @@
 from collections.abc import AsyncGenerator
 
-from motor.motor_asyncio import AsyncIOMotorCollection
-from pydantic_core import to_jsonable_python
+from sqlmodel import col, delete, select
+from wheke_sqlmodel import SQLModelRepository
 
 from capsule.activitypub.models import InboxEntry, InboxEntryStatus
-from capsule.database.service import DatabaseService
-from capsule.utils import utc_now
 
 
-class InboxRepository:
-    collection: AsyncIOMotorCollection
-
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("created_at")
-
+class InboxRepository(SQLModelRepository):
     async def create_entry(self, entry: InboxEntry) -> InboxEntry:
-        result = await self.collection.insert_one(to_jsonable_python(entry))
-        entry.id = result.inserted_id
+        async with self.db.session as session:
+            session.add(entry)
+            await session.commit()
+            await session.refresh(entry)
 
         return entry
 
     async def list_entries(
         self, status: InboxEntryStatus
     ) -> AsyncGenerator[InboxEntry]:
-        cursor = self.collection.find({"status": {"$eq": status}})
-
-        async for entry in cursor:
-            yield InboxEntry(**entry)
+        async with self.db.session as session:
+            stmt = select(InboxEntry).where(InboxEntry.status == status)
+            for entry in await session.exec(stmt):
+                yield entry
 
     async def update_entries_state(self, ids: list, status: InboxEntryStatus) -> None:
-        data = {"status": status, "updated_at": utc_now()}
+        async with self.db.session as session:
+            stmt = select(InboxEntry).where(col(InboxEntry.id).in_(ids))
+            for entry in await session.exec(stmt):
+                entry.status = status
+                session.add(entry)
 
-        await self.collection.update_many(
-            {"_id": {"$in": ids}},
-            {"$set": to_jsonable_python(data)},
-        )
+            await session.commit()
 
     async def delete_entries(self) -> None:
-        await self.collection.delete_many({})
+        async with self.db.session as session:
+            stmt = delete(InboxEntry)
+            await session.exec(stmt)
+            await session.commit()
