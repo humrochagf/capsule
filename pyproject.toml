@@ -65,6 +65,7 @@ pythonpath = [
 source_pkgs = ["capsule", "tests"]
 branch = false
 parallel = true
+concurrency = ["greenlet", "thread"]
 omit = [
   "src/capsule/__about__.py",
 ]
