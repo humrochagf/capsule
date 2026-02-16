@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, HttpUrl
@@ -6,7 +6,7 @@ from pydantic import BaseModel, HttpUrl
 from capsule.settings import CapsuleSettings
 
 
-class FollowStatus(str, Enum):
+class FollowStatus(StrEnum):
     pending = "pending"
     accepted = "accepted"
 

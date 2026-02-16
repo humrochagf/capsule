@@ -91,7 +91,7 @@ class HttpSignatureInfo:
         )
 
     @classmethod
-    def from_compiled_signature(cls, signature: str) -> "HttpSignatureInfo":
+    def from_compiled_signature(cls, signature: str) -> HttpSignatureInfo:
         parts = {}
 
         for part in signature.split(","):
@@ -115,7 +115,7 @@ class SignedRequestAuth(Auth):
         self.public_key_id = public_key_id
         self.private_key = private_key
 
-    def auth_flow(self, request: Request) -> Generator[Request, Response, None]:
+    def auth_flow(self, request: Request) -> Generator[Request, Response]:
         self.sign_request(request)
         yield request
 

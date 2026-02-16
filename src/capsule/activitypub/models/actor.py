@@ -1,5 +1,5 @@
 import mimetypes
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -12,7 +12,7 @@ class PublicKey(BaseModel):
     public_key_pem: str = Field(alias="publicKeyPem")
 
 
-class ActorType(str, Enum):
+class ActorType(StrEnum):
     application = "Application"
     group = "Group"
     organization = "Organization"
@@ -34,7 +34,7 @@ class Actor(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def make_main_actor(cls, settings: CapsuleSettings) -> "Actor":
+    def make_main_actor(cls, settings: CapsuleSettings) -> Actor:
         data: dict = {
             "@context": [
                 "https://www.w3.org/ns/activitystreams",

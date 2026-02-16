@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, HttpUrl
@@ -46,7 +46,7 @@ class ActivityType(TypeDecorator[Activity]):
         return Activity(**value) if value else None
 
 
-class InboxEntryStatus(str, Enum):
+class InboxEntryStatus(StrEnum):
     created = "created"
     synced = "synced"
     error = "error"
