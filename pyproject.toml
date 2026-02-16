@@ -29,6 +29,7 @@ dependencies = [
   "python-multipart",
   "uvicorn[standard]",
   "wheke",
+  "wheke-ladybug",
   "wheke-sqlmodel",
 ]
 

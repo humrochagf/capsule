@@ -21,10 +21,30 @@ async def _syncdb(container: Container) -> None:
 
     console.print("Syncing repositories...")
 
-    await activitypub.setup_repositories()
+    await activitypub.create_tables()
     console.print("ActivityPub repositories [green]synced[/]")
 
     console.print("SyncDB completed!")
+
+
+async def _dropdb(container: Container) -> None:
+    console.print("Acquiring services to DropDB...")
+    console.print("[yellow]This is a destructible operation[/]")
+
+    database = get_database_service(container)
+    console.print("Database service [green]acquired[/]")
+
+    activitypub = get_activitypub_service(container)
+    console.print("ActivityPub service [green]acquired[/]")
+
+    console.print("Dropping repositories...")
+
+    await database.drop_db()
+
+    await activitypub.drop_tables()
+    console.print("ActivityPub repositories [green]dropped[/]")
+
+    console.print("DropDB completed!")
 
 
 @cli.command(short_help="Create collections and indexes")
@@ -36,14 +56,7 @@ def syncdb(ctx: Context) -> None:
 @cli.command(short_help="Drop the whole database")
 def dropdb(ctx: Context) -> None:
     container = get_container(ctx)
-
-    console.print("Acquiring Database to drop...")
-    console.print("[yellow]This is a destructible operation[/]")
-
-    database = get_database_service(container)
-    anyio.run(database.drop_db)
-
-    console.print("DropDB completed!")
+    anyio.run(_dropdb, container)
 
 
 @cli.command(short_help="Start http server")

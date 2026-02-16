@@ -8,6 +8,7 @@ from pydantic import HttpUrl
 from svcs import Container
 from svcs.fastapi import DepContainer
 from wheke import get_service
+from wheke_ladybug import get_ladybug_service
 from wheke_sqlmodel import get_sqlmodel_service
 
 from capsule.database.service import get_database_service
@@ -43,10 +44,13 @@ class ActivityPubService:
         self.followers = followers_repository
         self.following = following_repository
 
-    async def setup_repositories(self) -> None:
-        await self.actors.create_indexes()
+    async def create_tables(self) -> None:
+        await self.actors.create_table()
         await self.followers.create_indexes()
         await self.following.create_indexes()
+
+    async def drop_tables(self) -> None:
+        await self.actors.drop_table()
 
     def get_main_actor(self) -> Actor:
         return self.actors.get_main_actor(self.settings)
@@ -232,11 +236,12 @@ class ActivityPubService:
 def activitypub_service_factory(container: Container) -> ActivityPubService:
     database_service = get_database_service(container)
     sqlmodel_service = get_sqlmodel_service(container)
+    ladybug_service = get_ladybug_service(container)
 
     return ActivityPubService(
         settings=get_capsule_settings(container),
         inbox_repository=InboxRepository(sqlmodel_service),
-        actor_repository=ActorRepository("actors", database_service),
+        actor_repository=ActorRepository(ladybug_service),
         followers_repository=FollowRepository("followers", database_service),
         following_repository=FollowRepository("following", database_service),
     )
