@@ -11,7 +11,6 @@ from wheke import get_service
 from wheke_ladybug import get_ladybug_service
 from wheke_sqlmodel import get_sqlmodel_service
 
-from capsule.database.service import get_database_service
 from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
@@ -25,8 +24,7 @@ class ActivityPubService:
 
     inbox: InboxRepository
     actors: ActorRepository
-    followers: FollowRepository
-    following: FollowRepository
+    follows: FollowRepository
 
     def __init__(
         self,
@@ -34,23 +32,21 @@ class ActivityPubService:
         settings: CapsuleSettings,
         inbox_repository: InboxRepository,
         actor_repository: ActorRepository,
-        followers_repository: FollowRepository,
-        following_repository: FollowRepository,
+        follows_repository: FollowRepository,
     ) -> None:
         self.settings = settings
 
         self.inbox = inbox_repository
         self.actors = actor_repository
-        self.followers = followers_repository
-        self.following = following_repository
+        self.follows = follows_repository
 
     async def create_tables(self) -> None:
         await self.actors.create_table()
-        await self.followers.create_indexes()
-        await self.following.create_indexes()
+        await self.follows.create_table()
 
     async def drop_tables(self) -> None:
         await self.actors.drop_table()
+        await self.follows.drop_table()
 
     def get_main_actor(self) -> Actor:
         return self.actors.get_main_actor(self.settings)
@@ -169,7 +165,7 @@ class ActivityPubService:
 
     async def handle_follow(self, entry: InboxEntry) -> InboxEntryStatus:
         actor = await self.ensure_actor(entry)
-        follow = await self.followers.get_follow(entry.activity.id)
+        follow = await self.follows.get_follow(entry.activity.id)
 
         if follow is None:
             follow = Follow(
@@ -200,7 +196,7 @@ class ActivityPubService:
 
                     return InboxEntryStatus.error
 
-            await self.followers.upsert_follow(follow)
+            await self.follows.upsert_follow(follow)
 
         return InboxEntryStatus.synced
 
@@ -208,7 +204,7 @@ class ActivityPubService:
         actor = await self.get_actor(entry.activity.actor)
         object_data = cast(dict, entry.activity.object)
         follow_id = HttpUrl(object_data.get("id", ""))
-        follow = await self.followers.get_follow(follow_id)
+        follow = await self.follows.get_follow(follow_id)
 
         if (
             follow is not None
@@ -216,7 +212,7 @@ class ActivityPubService:
             and follow.actor == actor.id
             and object_data.get("actor") == str(actor.id)
         ):
-            await self.followers.delete_follow(follow.id)
+            await self.follows.delete_follow(follow.id)
 
         return InboxEntryStatus.synced
 
@@ -226,15 +222,13 @@ class ActivityPubService:
         if actor is not None and entry.activity.object == str(actor.id):
             logger.info("Delete triggered {} cleanup", actor.id)
 
-            await self.followers.delete_follow_by_actor(actor.id)
-            await self.following.delete_follow_by_actor(actor.id)
+            await self.follows.delete_follow_by_actor(actor.id)
             await self.actors.delete_actor(actor.id)
 
         return InboxEntryStatus.synced
 
 
 def activitypub_service_factory(container: Container) -> ActivityPubService:
-    database_service = get_database_service(container)
     sqlmodel_service = get_sqlmodel_service(container)
     ladybug_service = get_ladybug_service(container)
 
@@ -242,8 +236,7 @@ def activitypub_service_factory(container: Container) -> ActivityPubService:
         settings=get_capsule_settings(container),
         inbox_repository=InboxRepository(sqlmodel_service),
         actor_repository=ActorRepository(ladybug_service),
-        followers_repository=FollowRepository("followers", database_service),
-        following_repository=FollowRepository("following", database_service),
+        follows_repository=FollowRepository(ladybug_service),
     )
 
 

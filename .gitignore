@@ -1,6 +1,7 @@
 *.db
 *.egg
 *.egg-info
+*.lbug
 *.lock
 *.py[oc]
 .coverage

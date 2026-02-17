@@ -2,27 +2,27 @@ import anyio
 import uvicorn
 from rich.console import Console
 from svcs import Container
-from typer import Context
+from typer import Context, Typer
 from wheke import get_container
+from wheke_sqlmodel import get_sqlmodel_service
 
-from . import build_app, build_cli
+from . import build_app, build_wheke
 from .activitypub.service import get_activitypub_service
-from .database.service import get_database_service
+from .settings import CapsuleSettings
 
-cli = build_cli()
 console = Console(highlight=False)
 
 
 async def _syncdb(container: Container) -> None:
     console.print("Acquiring services to SyncDB...")
 
+    sqlmodel = get_sqlmodel_service(container)
     activitypub = get_activitypub_service(container)
-    console.print("ActivityPub service [green]acquired[/]")
 
     console.print("Syncing repositories...")
 
+    await sqlmodel.create_db()
     await activitypub.create_tables()
-    console.print("ActivityPub repositories [green]synced[/]")
 
     console.print("SyncDB completed!")
 
@@ -31,36 +31,18 @@ async def _dropdb(container: Container) -> None:
     console.print("Acquiring services to DropDB...")
     console.print("[yellow]This is a destructible operation[/]")
 
-    database = get_database_service(container)
-    console.print("Database service [green]acquired[/]")
-
     activitypub = get_activitypub_service(container)
-    console.print("ActivityPub service [green]acquired[/]")
+    sqlmodel = get_sqlmodel_service(container)
 
     console.print("Dropping repositories...")
 
-    await database.drop_db()
-
     await activitypub.drop_tables()
-    console.print("ActivityPub repositories [green]dropped[/]")
+    await sqlmodel.drop_db()
 
     console.print("DropDB completed!")
 
 
-@cli.command(short_help="Create collections and indexes")
-def syncdb(ctx: Context) -> None:
-    container = get_container(ctx)
-    anyio.run(_syncdb, container)
-
-
-@cli.command(short_help="Drop the whole database")
-def dropdb(ctx: Context) -> None:
-    container = get_container(ctx)
-    anyio.run(_dropdb, container)
-
-
-@cli.command(short_help="Start http server")
-def start_server() -> None:  # pragma: no cover
+async def _start_server() -> None:  # pragma: no cover
     config = uvicorn.Config(
         build_app,
         host="0.0.0.0",
@@ -76,4 +58,29 @@ def start_server() -> None:  # pragma: no cover
 
     console.print("Starting server...")
 
-    anyio.run(server.serve)
+    await server.serve()
+
+
+def build_cli(
+    settings: CapsuleSettings | type[CapsuleSettings] = CapsuleSettings,
+) -> Typer:
+    cli = build_wheke(settings).create_cli()
+
+    @cli.command(short_help="Create the databases")
+    def syncdb(ctx: Context) -> None:
+        container = get_container(ctx)
+        anyio.run(_syncdb, container)
+
+    @cli.command(short_help="Drop the databases")
+    def dropdb(ctx: Context) -> None:
+        container = get_container(ctx)
+        anyio.run(_dropdb, container)
+
+    @cli.command(short_help="Start http server")
+    def start_server() -> None:  # pragma: no cover
+        anyio.run(_start_server)
+
+    return cli
+
+
+cli = build_cli()

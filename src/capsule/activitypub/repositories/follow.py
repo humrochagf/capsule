@@ -1,33 +1,84 @@
-from motor.motor_asyncio import AsyncIOMotorCollection
+from typing import cast
+
 from pydantic import HttpUrl
 from pydantic_core import to_jsonable_python
+from real_ladybug import QueryResult
+from wheke_ladybug import LadybugRepository
 
 from capsule.activitypub.models import Follow
-from capsule.database.service import DatabaseService
 
 
-class FollowRepository:
-    collection: AsyncIOMotorCollection
+class FollowRepository(LadybugRepository):
+    async def create_table(self) -> None:
+        with self.db.async_connection as conn:
+            await conn.execute(
+                """
+                CREATE NODE TABLE IF NOT EXISTS Follow
+                (
+                    id STRING PRIMARY KEY,
+                    actor STRING,
+                    status STRING
+                );
+                """
+            )
 
-    def __init__(self, collection_name: str, database_service: DatabaseService) -> None:
-        self.collection = database_service.get_collection(collection_name)
-
-    async def create_indexes(self) -> None:
-        await self.collection.create_index("id", unique=True)
+    async def drop_table(self) -> None:
+        with self.db.async_connection as conn:
+            await conn.execute("DROP TABLE IF EXISTS Follow;")
 
     async def get_follow(self, follow_id: HttpUrl) -> Follow | None:
-        data = await self.collection.find_one({"id": {"$eq": str(follow_id)}})
-        return Follow(**data) if data else None
+        with self.db.async_connection as conn:
+            response = cast(
+                QueryResult,
+                await conn.execute(
+                    """
+                    MATCH (f:Follow)
+                    WHERE f.id = $follow_id
+                    RETURN
+                    f.id as id,
+                    f.actor as actor,
+                    f.status as status;
+                    """,
+                    parameters={"follow_id": str(follow_id)},
+                ),
+            )
+
+            data = cast(list[dict], response.rows_as_dict().get_all())
+            return Follow.model_validate(data[0]) if len(data) > 0 else None
 
     async def upsert_follow(self, follow: Follow) -> None:
-        await self.collection.replace_one(
-            {"id": {"$eq": str(follow.id)}},
-            to_jsonable_python(follow),
-            upsert=True,
-        )
+        with self.db.async_connection as conn:
+            await conn.execute(
+                """
+                MERGE (f:Follow {id: $id})
+                ON CREATE SET
+                f.actor = $actor,
+                f.status = $status
+                ON MATCH SET
+                f.actor = $actor,
+                f.status = $status;
+                """,
+                parameters=to_jsonable_python(follow),
+            )
 
     async def delete_follow(self, follow_id: HttpUrl) -> None:
-        await self.collection.delete_one({"id": {"$eq": str(follow_id)}})
+        with self.db.async_connection as conn:
+            await conn.execute(
+                """
+                MATCH (f:Follow)
+                WHERE f.id = $follow_id
+                DELETE f;
+                """,
+                parameters={"follow_id": str(follow_id)},
+            )
 
     async def delete_follow_by_actor(self, actor_id: HttpUrl) -> None:
-        await self.collection.delete_one({"actor": {"$eq": str(actor_id)}})
+        with self.db.async_connection as conn:
+            await conn.execute(
+                """
+                MATCH (f:Follow)
+                WHERE f.actor = $actor_id
+                DELETE f;
+                """,
+                parameters={"actor_id": str(actor_id)},
+            )

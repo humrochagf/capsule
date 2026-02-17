@@ -8,30 +8,16 @@ from fastapi.testclient import TestClient
 from httpx import BasicAuth
 from pydantic_core import Url
 from typer.testing import CliRunner
+from wheke_ladybug import LadybugSettings
 from wheke_sqlmodel import SQLITE_DRIVER, SQLModelSettings
 
-from capsule import build_app, build_cli
-from capsule.__main__ import cli as capsule_cli
+from capsule import build_app
+from capsule.__main__ import build_cli, cli as capsule_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings
 from tests.utils import ap_actor
 
 CAPSULE_USERNAME = "testuser"
-
-
-@pytest.fixture(autouse=True, scope="session")
-def session_setup_and_teardown() -> Generator:
-    runner = CliRunner()
-
-    # setup
-    result = runner.invoke(capsule_cli, ["syncdb"])
-    assert result.exit_code == 0
-
-    yield
-
-    # teardown
-    result = runner.invoke(capsule_cli, ["dropdb"])
-    assert result.exit_code == 0
 
 
 @pytest.fixture
@@ -40,14 +26,14 @@ def client(capsule_settings: CapsuleSettings) -> Generator[TestClient]:
     cli = build_cli(capsule_settings)
 
     # setup
-    result = runner.invoke(cli, ["sqlmodel", "create-db"])
+    result = runner.invoke(cli, ["syncdb"])
     assert result.exit_code == 0
 
     with TestClient(build_app(capsule_settings)) as client:
         yield client
 
     # teardown
-    result = runner.invoke(cli, ["sqlmodel", "drop-db"])
+    result = runner.invoke(cli, ["dropdb"])
     assert result.exit_code == 0
 
 
@@ -59,11 +45,15 @@ def capsule_settings(
         connection_string=f"{SQLITE_DRIVER}:///{tmp_path / 'test.db'}",
         echo_operations=True,
     )
+    ladybug_settings = LadybugSettings(
+        connection_string=f"{tmp_path / 'test.lbug'}",
+    )
     settings = CapsuleSettings(
         username=CAPSULE_USERNAME,
         password=pwd_and_hash[1],
         features={
             sqlmodel_settings.__feature_name__: sqlmodel_settings.model_dump(),
+            ladybug_settings.__feature_name__: ladybug_settings.model_dump(),
         },
     )
 

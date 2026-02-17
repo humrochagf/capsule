@@ -25,7 +25,6 @@ dependencies = [
   "httpx",
   "jinja2",
   "loguru",
-  "motor",
   "python-multipart",
   "uvicorn[standard]",
   "wheke",
