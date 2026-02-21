@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import AnyUrl, BaseModel, HttpUrl
 from sqlmodel import Field, SQLModel
@@ -26,7 +26,7 @@ class AuthorizeAppRequest(BaseModel):
     state: str = ""
 
 
-class GrantType(str, Enum):
+class GrantType(StrEnum):
     authorization_code = "authorization_code"
     client_credentials = "client_credentials"
 
