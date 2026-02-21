@@ -9,7 +9,7 @@ from capsule.settings import CapsuleSettings
 from tests.utils import ap_follow, ap_unfollow
 
 
-def test_receive_follow(
+def test_follow_and_unfollow(
     client: TestClient,
     capsule_settings: CapsuleSettings,
     actor_and_keypair: tuple[dict, RSAKeyPair],
