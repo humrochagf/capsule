@@ -3,8 +3,6 @@ from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, HttpUrl
 
-from capsule.settings import CapsuleSettings
-
 
 class FollowStatus(StrEnum):
     pending = "pending"
@@ -13,10 +11,11 @@ class FollowStatus(StrEnum):
 
 class Follow(BaseModel):
     id: HttpUrl
-    actor: HttpUrl
+    from_actor: HttpUrl
+    to_actor: HttpUrl
     status: FollowStatus = FollowStatus.pending
 
-    def to_accept_ap(self, settings: CapsuleSettings) -> dict:
+    def to_accept_ap(self) -> dict:
         activity_id = uuid5(NAMESPACE_URL, str(self.id))
 
         return {
@@ -28,12 +27,12 @@ class Follow(BaseModel):
                 },
             ],
             "type": "Accept",
-            "id": f"{settings.actor_url}/activity/{activity_id}",
-            "actor": settings.actor_url,
+            "id": f"{self.to_actor}/activity/{activity_id}",
+            "actor": str(self.to_actor),
             "object": {
                 "type": "Follow",
                 "id": str(self.id),
-                "actor": str(self.actor),
-                "object": settings.actor_url,
+                "actor": str(self.from_actor),
+                "object": str(self.to_actor),
             },
         }

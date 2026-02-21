@@ -12,7 +12,8 @@ from wheke_ladybug import LadybugSettings
 from wheke_sqlmodel import SQLITE_DRIVER, SQLModelSettings
 
 from capsule import build_app
-from capsule.__main__ import build_cli, cli as capsule_cli
+from capsule.__main__ import build_cli
+from capsule.__main__ import cli as capsule_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings
 from tests.utils import ap_actor

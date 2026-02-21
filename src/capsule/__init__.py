@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from typer import Typer
 from wheke import Wheke
 from wheke_ladybug import ladybug_pod
 from wheke_sqlmodel import sqlmodel_pod

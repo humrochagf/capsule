@@ -45,8 +45,8 @@ class ActivityPubService:
         await self.follows.create_table()
 
     async def drop_tables(self) -> None:
-        await self.actors.drop_table()
         await self.follows.drop_table()
+        await self.actors.drop_table()
 
     def get_main_actor(self) -> Actor:
         return self.actors.get_main_actor(self.settings)
@@ -115,7 +115,13 @@ class ActivityPubService:
 
             return Actor(**response.json())
 
-    async def ensure_actor(self, entry: InboxEntry) -> Actor:
+    async def ensure_main_actor(self) -> None:
+        actor = await self.get_actor(HttpUrl(self.settings.actor_url))
+
+        if not actor:
+            await self.actors.upsert_actor(Actor.make_main_actor(self.settings))
+
+    async def ensure_remote_actor(self, entry: InboxEntry) -> Actor:
         actor = await self.get_actor(entry.activity.actor)
 
         if not actor:
@@ -149,7 +155,7 @@ class ActivityPubService:
                 case "Delete", None:
                     entry_status = await self.handle_delete(entry)
                 case activity_type, object_type:
-                    await self.ensure_actor(entry)
+                    await self.ensure_remote_actor(entry)
                     entry_status = InboxEntryStatus.not_implemented
 
                     logger.warning(
@@ -164,13 +170,14 @@ class ActivityPubService:
         await self.inbox.update_entries_state([entry_id], entry_status)
 
     async def handle_follow(self, entry: InboxEntry) -> InboxEntryStatus:
-        actor = await self.ensure_actor(entry)
+        actor = await self.ensure_remote_actor(entry)
         follow = await self.follows.get_follow(entry.activity.id)
 
         if follow is None:
             follow = Follow(
                 id=entry.activity.id,
-                actor=entry.activity.actor,
+                from_actor=entry.activity.actor,
+                to_actor=HttpUrl(self.settings.actor_url),
                 status=FollowStatus.accepted,
             )
             auth = SignedRequestAuth(
@@ -184,7 +191,7 @@ class ActivityPubService:
 
             async with httpx.AsyncClient(auth=auth, headers=headers) as client:
                 response = await client.post(
-                    str(actor.inbox), json=follow.to_accept_ap(self.settings)
+                    str(actor.inbox), json=follow.to_accept_ap()
                 )
 
                 if response.is_error:
@@ -209,7 +216,7 @@ class ActivityPubService:
         if (
             follow is not None
             and actor is not None
-            and follow.actor == actor.id
+            and follow.from_actor == actor.id
             and object_data.get("actor") == str(actor.id)
         ):
             await self.follows.delete_follow(follow.id)
@@ -222,7 +229,10 @@ class ActivityPubService:
         if actor is not None and entry.activity.object == str(actor.id):
             logger.info("Delete triggered {} cleanup", actor.id)
 
-            await self.follows.delete_follow_by_actor(actor.id)
+            main_actor = HttpUrl(self.settings.actor_url)
+
+            await self.follows.delete_follow_by_actors(actor.id, main_actor)
+            await self.follows.delete_follow_by_actors(main_actor, actor.id)
             await self.actors.delete_actor(actor.id)
 
         return InboxEntryStatus.synced

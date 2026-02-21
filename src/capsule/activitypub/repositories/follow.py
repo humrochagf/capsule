@@ -13,10 +13,10 @@ class FollowRepository(LadybugRepository):
         with self.db.async_connection as conn:
             await conn.execute(
                 """
-                CREATE NODE TABLE IF NOT EXISTS Follow
+                CREATE REL TABLE IF NOT EXISTS Follows
                 (
-                    id STRING PRIMARY KEY,
-                    actor STRING,
+                    FROM Actor to Actor,
+                    id STRING,
                     status STRING
                 );
                 """
@@ -24,7 +24,7 @@ class FollowRepository(LadybugRepository):
 
     async def drop_table(self) -> None:
         with self.db.async_connection as conn:
-            await conn.execute("DROP TABLE IF EXISTS Follow;")
+            await conn.execute("DROP TABLE IF EXISTS Follows;")
 
     async def get_follow(self, follow_id: HttpUrl) -> Follow | None:
         with self.db.async_connection as conn:
@@ -32,11 +32,12 @@ class FollowRepository(LadybugRepository):
                 QueryResult,
                 await conn.execute(
                     """
-                    MATCH (f:Follow)
+                    MATCH (a:Actor)-[f:Follows]->(b:Actor)
                     WHERE f.id = $follow_id
                     RETURN
                     f.id as id,
-                    f.actor as actor,
+                    a.id as from_actor,
+                    b.id as to_actor,
                     f.status as status;
                     """,
                     parameters={"follow_id": str(follow_id)},
@@ -50,12 +51,12 @@ class FollowRepository(LadybugRepository):
         with self.db.async_connection as conn:
             await conn.execute(
                 """
-                MERGE (f:Follow {id: $id})
+                MATCH (a:Actor), (b:Actor)
+                WHERE a.id = $from_actor AND b.id = $to_actor
+                MERGE (a)-[f:Follows {id:$id}]->(b)
                 ON CREATE SET
-                f.actor = $actor,
                 f.status = $status
                 ON MATCH SET
-                f.actor = $actor,
                 f.status = $status;
                 """,
                 parameters=to_jsonable_python(follow),
@@ -65,20 +66,25 @@ class FollowRepository(LadybugRepository):
         with self.db.async_connection as conn:
             await conn.execute(
                 """
-                MATCH (f:Follow)
+                MATCH (a:Actor)-[f:Follows]->(b:Actor)
                 WHERE f.id = $follow_id
                 DELETE f;
                 """,
                 parameters={"follow_id": str(follow_id)},
             )
 
-    async def delete_follow_by_actor(self, actor_id: HttpUrl) -> None:
+    async def delete_follow_by_actors(
+        self, from_actor: HttpUrl, to_actor: HttpUrl
+    ) -> None:
         with self.db.async_connection as conn:
             await conn.execute(
                 """
-                MATCH (f:Follow)
-                WHERE f.actor = $actor_id
+                MATCH (a:Actor)-[f:Follows]->(b:Actor)
+                WHERE a.id = $from_actor AND b.id = $to_actor
                 DELETE f;
                 """,
-                parameters={"actor_id": str(actor_id)},
+                parameters={
+                    "from_actor": str(from_actor),
+                    "to_actor": str(to_actor),
+                },
             )

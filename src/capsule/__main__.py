@@ -24,6 +24,8 @@ async def _syncdb(container: Container) -> None:
     await sqlmodel.create_db()
     await activitypub.create_tables()
 
+    await activitypub.ensure_main_actor()
+
     console.print("SyncDB completed!")
 
 
