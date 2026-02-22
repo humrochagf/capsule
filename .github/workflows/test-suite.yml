@@ -22,12 +22,6 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.14"]
 
-    services:
-      mongodb:
-        image: mongodb/mongodb-community-server:latest
-        ports:
-          - 27017:27017
-
     steps:
     - uses: actions/checkout@v6
 
