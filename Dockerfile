@@ -1,4 +1,4 @@
-FROM astral/uv:python3.13-alpine
+FROM astral/uv:python3.14-trixie-slim
 
 ENV UV_COMPILE_BYTECODE=1
 
