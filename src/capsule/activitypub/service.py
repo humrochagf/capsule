@@ -15,7 +15,7 @@ from capsule.security.utils import SignedRequestAuth
 from capsule.settings import CapsuleSettings, get_capsule_settings
 
 from .exceptions import EnsureActorError
-from .models import Actor, Follow, FollowStatus, InboxEntry, InboxEntryStatus
+from .models import Actor, ActorAP, Follow, FollowStatus, InboxEntry, InboxEntryStatus
 from .repositories import ActorRepository, FollowRepository, InboxRepository
 
 
@@ -48,8 +48,8 @@ class ActivityPubService:
         await self.follows.drop_table()
         await self.actors.drop_table()
 
-    def get_main_actor(self) -> Actor:
-        return self.actors.get_main_actor(self.settings)
+    def get_main_actor_ap(self) -> ActorAP:
+        return ActorAP.make_main_actor(self.settings)
 
     async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
         return await self.actors.get_actor(actor_id)
@@ -113,13 +113,19 @@ class ActivityPubService:
                 ).error("Failed to fetch actor from remote")
                 return None
 
-            return Actor(**response.json())
+            ap_data = ActorAP(**response.json())
+
+            return Actor(id=ap_data.id, ap_data=ap_data, is_local=False)
 
     async def ensure_main_actor(self) -> None:
-        actor = await self.get_actor(HttpUrl(self.settings.actor_url))
+        actor = await self.get_actor(self.settings.main_actor_id)
 
         if not actor:
-            await self.actors.upsert_actor(Actor.make_main_actor(self.settings))
+            ap_actor = ActorAP.make_main_actor(self.settings)
+
+            await self.actors.upsert_actor(
+                Actor(id=ap_actor.id, ap_data=ap_actor, is_local=True)
+            )
 
     async def ensure_remote_actor(self, entry: InboxEntry) -> Actor:
         actor = await self.get_actor(entry.activity.actor)
@@ -177,7 +183,7 @@ class ActivityPubService:
             follow = Follow(
                 id=entry.activity.id,
                 from_actor=entry.activity.actor,
-                to_actor=HttpUrl(self.settings.actor_url),
+                to_actor=self.settings.main_actor_id,
                 status=FollowStatus.accepted,
             )
             auth = SignedRequestAuth(
@@ -191,7 +197,7 @@ class ActivityPubService:
 
             async with httpx.AsyncClient(auth=auth, headers=headers) as client:
                 response = await client.post(
-                    str(actor.inbox), json=follow.to_accept_ap()
+                    str(actor.ap_data.inbox), json=follow.to_accept_ap()
                 )
 
                 if response.is_error:
@@ -229,7 +235,7 @@ class ActivityPubService:
         if actor is not None and entry.activity.object == str(actor.id):
             logger.info("Delete triggered {} cleanup", actor.id)
 
-            main_actor = HttpUrl(self.settings.actor_url)
+            main_actor = self.settings.main_actor_id
 
             await self.follows.delete_follow_by_actors(actor.id, main_actor)
             await self.follows.delete_follow_by_actors(main_actor, actor.id)

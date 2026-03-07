@@ -29,12 +29,16 @@ class CapsuleSettings(WhekeSettings):
     )
 
     @property
-    def profile_url(self) -> str:
-        return f"{self.hostname}@{self.username}"
+    def main_actor_id(self) -> HttpUrl:
+        return HttpUrl(self.actor_url)
 
     @property
     def actor_url(self) -> str:
         return f"{self.hostname}actors/{self.username}"
+
+    @property
+    def profile_url(self) -> str:
+        return f"{self.hostname}@{self.username}"
 
     @property
     def public_key_id(self) -> str:

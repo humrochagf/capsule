@@ -20,7 +20,7 @@ class ActorType(StrEnum):
     service = "Service"
 
 
-class Actor(BaseModel):
+class ActorAP(BaseModel):
     id: HttpUrl
     type: ActorType
     name: str
@@ -34,7 +34,7 @@ class Actor(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     @classmethod
-    def make_main_actor(cls, settings: CapsuleSettings) -> Actor:
+    def make_main_actor(cls, settings: CapsuleSettings) -> ActorAP:
         data: dict = {
             "@context": [
                 "https://www.w3.org/ns/activitystreams",
@@ -66,4 +66,11 @@ class Actor(BaseModel):
                 "url": f"{settings.actor_url}/icon",
             }
 
-        return Actor(**data)
+        return ActorAP(**data)
+
+
+class Actor(BaseModel):
+    id: HttpUrl
+    ap_data: ActorAP
+
+    is_local: bool = Field(default=False)

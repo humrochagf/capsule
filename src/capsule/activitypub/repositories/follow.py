@@ -35,10 +35,10 @@ class FollowRepository(LadybugRepository):
                     MATCH (a:Actor)-[f:Follows]->(b:Actor)
                     WHERE f.id = $follow_id
                     RETURN
-                    f.id as id,
-                    a.id as from_actor,
-                    b.id as to_actor,
-                    f.status as status;
+                    f.id AS id,
+                    a.id AS from_actor,
+                    b.id AS to_actor,
+                    f.status AS status;
                     """,
                     parameters={"follow_id": str(follow_id)},
                 ),

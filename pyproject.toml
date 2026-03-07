@@ -94,12 +94,6 @@ exclude = """
   | venv
 """
 
-[[tool.mypy.overrides]]
-module = [
-  "coolname",
-]
-ignore_missing_imports = true
-
 [tool.isort]
 profile = "black"
 skip = [

@@ -5,8 +5,7 @@ from pydantic_core import to_jsonable_python
 from real_ladybug import QueryResult
 from wheke_ladybug import LadybugRepository
 
-from capsule.activitypub.models import Actor
-from capsule.settings import CapsuleSettings
+from capsule.activitypub.models import Actor, ActorAP
 
 
 class ActorRepository(LadybugRepository):
@@ -17,19 +16,8 @@ class ActorRepository(LadybugRepository):
                 CREATE NODE TABLE IF NOT EXISTS Actor
                 (
                     id STRING PRIMARY KEY,
-                    type STRING,
-                    name STRING,
-                    summary STRING,
-                    username STRING,
-                    inbox STRING,
-                    outbox STRING,
-                    public_key STRUCT
-                    (
-                        id STRING,
-                        owner STRING,
-                        public_key_pem STRING
-                    ),
-                    manually_approve_followers BOOLEAN
+                    ap_data JSON,
+                    is_local BOOLEAN
                 );
                 """
             )
@@ -37,9 +25,6 @@ class ActorRepository(LadybugRepository):
     async def drop_table(self) -> None:
         with self.db.async_connection as conn:
             await conn.execute("DROP TABLE IF EXISTS Actor;")
-
-    def get_main_actor(self, settings: CapsuleSettings) -> Actor:
-        return Actor.make_main_actor(settings)
 
     async def get_actor(self, actor_id: HttpUrl) -> Actor | None:
         with self.db.async_connection as conn:
@@ -50,24 +35,24 @@ class ActorRepository(LadybugRepository):
                     MATCH (a:Actor)
                     WHERE a.id = $actor_id
                     RETURN
-                    a.id as id,
-                    a.type as type,
-                    a.name as name,
-                    a.summary as summary,
-                    a.username as username,
-                    a.inbox as inbox,
-                    a.outbox as outbox,
-                    a.public_key as public_key,
-                    a.manually_approve_followers as manually_approve_followers;
+                    a.id AS id,
+                    cast(a.ap_data AS STRING) AS ap_data,
+                    a.is_local AS is_local;
                     """,
                     parameters={"actor_id": str(actor_id)},
                 ),
             )
 
-            data = cast(list[dict], response.rows_as_dict().get_all())
-            return (
-                Actor.model_validate(data[0], by_name=True) if len(data) > 0 else None
-            )
+            response_data = cast(list[dict], response.rows_as_dict().get_all())
+
+            if len(response_data) > 0:
+                data = response_data[0]
+            else:
+                return None
+
+            data["ap_data"] = ActorAP.model_validate_json(data["ap_data"])
+
+            return Actor.model_validate(data)
 
     async def upsert_actor(self, actor: Actor) -> None:
         with self.db.async_connection as conn:
@@ -75,25 +60,13 @@ class ActorRepository(LadybugRepository):
                 """
                 MERGE (a:Actor {id: $id})
                 ON CREATE SET
-                a.type = $type,
-                a.name = $name,
-                a.summary = $summary,
-                a.username = $username,
-                a.inbox = $inbox,
-                a.outbox = $outbox,
-                a.public_key = $public_key,
-                a.manually_approve_followers = $manually_approve_followers
+                a.ap_data = to_json($ap_data),
+                a.is_local = $is_local
                 ON MATCH SET
-                a.type = $type,
-                a.name = $name,
-                a.summary = $summary,
-                a.username = $username,
-                a.inbox = $inbox,
-                a.outbox = $outbox,
-                a.public_key = $public_key,
-                a.manually_approve_followers = $manually_approve_followers;
+                a.ap_data = to_json($ap_data),
+                a.is_local = $is_local;
                 """,
-                parameters=to_jsonable_python(actor, by_alias=False),
+                parameters=to_jsonable_python(actor),
             )
 
     async def delete_actor(self, actor_id: HttpUrl) -> None:

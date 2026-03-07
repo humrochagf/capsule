@@ -16,7 +16,7 @@ from capsule.security.exception import VerificationBadFormatError, VerificationE
 from capsule.security.services import SignatureServiceInjection
 from capsule.settings import CapsuleSettingsInjection
 
-from .models import Activity, Actor, InboxEntry
+from .models import Activity, ActorAP, InboxEntry
 from .service import ActivityPubServiceInjection
 
 router = APIRouter(tags=["activitypub"])
@@ -102,13 +102,13 @@ async def nodeinfo(
 
 @router.get("/@{username}", response_class=ActivityJSONResponse)
 @router.get("/actors/{username}", response_class=ActivityJSONResponse)
-async def actor(service: ActivityPubServiceInjection, username: str) -> Actor:
-    main_actor = service.get_main_actor()
+async def actor(service: ActivityPubServiceInjection, username: str) -> ActorAP:
+    actor = service.get_main_actor_ap()
 
-    if username != main_actor.username:
+    if username != actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    return main_actor
+    return actor
 
 
 @router.get("/actors/{username}/icon")
@@ -117,9 +117,9 @@ async def actor_profile_picture(
     service: ActivityPubServiceInjection,
     username: str,
 ) -> FileResponse:
-    main_actor = service.get_main_actor()
+    actor = service.get_main_actor_ap()
 
-    if username != main_actor.username or settings.profile_image is None:
+    if username != actor.username or settings.profile_image is None:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     return FileResponse(settings.profile_image)
@@ -134,16 +134,18 @@ async def actor_inbox(
     username: str,
     activity: Activity,
 ) -> None:
-    main_actor = activitypub.get_main_actor()
+    to_actor = activitypub.get_main_actor_ap()
 
-    if username != main_actor.username:
+    if username != to_actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
-    actor = await activitypub.get_actor(activity.actor)
+    from_actor = await activitypub.get_actor(activity.actor)
 
-    if actor:
+    if from_actor:
         try:
-            await signature.verify_request(request, actor.public_key.public_key_pem)
+            await signature.verify_request(
+                request, from_actor.ap_data.public_key.public_key_pem
+            )
         except VerificationBadFormatError as exc:
             raise HTTPException(HTTP_400_BAD_REQUEST) from exc
         except VerificationError as exc:
@@ -158,9 +160,9 @@ async def actor_inbox(
 
 @router.get("/actors/{username}/outbox")
 async def actor_outbox(service: ActivityPubServiceInjection, username: str) -> dict:
-    main_actor = service.get_main_actor()
+    actor = service.get_main_actor_ap()
 
-    if username != main_actor.username:
+    if username != actor.username:
         raise HTTPException(HTTP_404_NOT_FOUND)
 
     return {
