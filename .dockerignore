@@ -1,3 +1,9 @@
+# Ignore the git directory and associated files
+.git
+.gitignore
+.gitkeep
+
+# Project files
 *.db
 *.egg
 *.egg-info

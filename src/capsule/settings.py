@@ -2,13 +2,26 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends
-from pydantic import FilePath, HttpUrl
+from pydantic import Field, FilePath, HttpUrl
 from pydantic_settings import SettingsConfigDict
 from svcs import Container
 from svcs.fastapi import DepContainer
 from wheke import WhekeSettings, get_settings
+from wheke_ladybug import LadybugSettings
+from wheke_sqlmodel import SQLModelSettings
 
 from .__about__ import __version__
+
+
+def default_features() -> dict:
+    return {
+        LadybugSettings.__feature_name__: {
+            "connection_string": "data/graph.lbug",
+        },
+        SQLModelSettings.__feature_name__: {
+            "connection_string": "sqlite+aiosqlite:///data/database.db",
+        },
+    }
 
 
 class CapsuleSettings(WhekeSettings):
@@ -23,6 +36,8 @@ class CapsuleSettings(WhekeSettings):
 
     public_key: str = ""
     private_key: str = ""
+
+    features: dict = Field(default_factory=default_features)
 
     model_config = SettingsConfigDict(
         env_prefix="capsule_", env_file=".env", env_file_encoding="utf-8"
