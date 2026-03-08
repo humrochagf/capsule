@@ -120,11 +120,12 @@ async def authorize(
 
 
 @router.post("/oauth/token")
-async def token_auth(
-    service: AuthServiceInjection,
-    request: OAuthTokenRequest | Annotated[OAuthTokenRequest, Form()],
-) -> dict:
-    match request.grant_type:
+async def token_auth(service: AuthServiceInjection, request: Request) -> dict:
+    is_json = "json" in request.headers.get("Content-Type", "")
+    data = await request.json() if is_json else await request.form()
+    auth_request = OAuthTokenRequest.model_validate(data)
+
+    match auth_request.grant_type:
         case GrantType.client_credentials:
             # individual client credential token unsupported
             # returning fixed token for apps interacting with
@@ -136,7 +137,7 @@ async def token_auth(
                 "created_at": int(time.time()),
             }
         case GrantType.authorization_code:
-            token = await service.make_oauth_token(request)
+            token = await service.make_oauth_token(auth_request)
 
             if not token:
                 raise HTTPException(HTTP_401_UNAUTHORIZED)
