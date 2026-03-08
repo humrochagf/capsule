@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-from pydantic import AnyUrl, BaseModel, HttpUrl
+from pydantic import AnyUrl, BaseModel
 from sqlmodel import Field, SQLModel
 
 from capsule.types import DateTimeType, UrlType
@@ -16,7 +16,7 @@ class CreateAppRequest(BaseModel):
     client_name: str
     redirect_uris: AnyUrl
     scopes: str = "read"
-    website: HttpUrl | None = None
+    website: AnyUrl | None = None
 
 
 class AuthorizeAppRequest(BaseModel):
@@ -43,14 +43,14 @@ class OAuthTokenRequest(BaseModel):
 
 class AuthenticatedApp(BaseModel):
     name: str
-    website: HttpUrl | None
+    website: AnyUrl | None
     redirect_uris: list[AnyUrl]
     scopes: list[str]
 
 
 class App(SQLModel, table=True):
     name: str
-    website: HttpUrl | None = Field(sa_type=UrlType, nullable=True)
+    website: AnyUrl | None = Field(sa_type=UrlType, nullable=True)
     redirect_uris: AnyUrl = Field(sa_type=UrlType)
     client_id: str = Field(default_factory=client_id, primary_key=True)
     client_secret: str = Field(default_factory=secret_token)

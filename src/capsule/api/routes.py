@@ -25,6 +25,7 @@ async def create_app(
 
 
 @router.get("/v1/apps/verify_credentials")
+@router.get("/v1/accounts/verify_credentials")
 async def verify_app(
     service: AuthServiceInjection, auth: CredentialsInjection
 ) -> AuthenticatedApp:

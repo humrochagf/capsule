@@ -120,7 +120,10 @@ async def authorize(
 
 
 @router.post("/oauth/token")
-async def token_auth(service: AuthServiceInjection, request: OAuthTokenRequest) -> dict:
+async def token_auth(
+    service: AuthServiceInjection,
+    request: OAuthTokenRequest | Annotated[OAuthTokenRequest, Form()],
+) -> dict:
     match request.grant_type:
         case GrantType.client_credentials:
             # individual client credential token unsupported
