@@ -2,7 +2,7 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import HttpUrl
+from pydantic import AnyUrl
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from capsule.security.models import App, AuthenticatedApp, CreateAppRequest
@@ -39,6 +39,6 @@ async def verify_app(
     return AuthenticatedApp(
         name=app.name,
         website=app.website,
-        redirect_uris=[HttpUrl(url) for url in str(app.redirect_uris).split()],
+        redirect_uris=[AnyUrl(url) for url in str(app.redirect_uris).split()],
         scopes=token.scopes.split(),
     )
