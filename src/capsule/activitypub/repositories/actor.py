@@ -36,7 +36,7 @@ class ActorRepository(LadybugRepository):
                     WHERE a.id = $actor_id
                     RETURN
                     a.id AS id,
-                    cast(a.ap_data AS STRING) AS ap_data,
+                    a.ap_data AS ap_data,
                     a.is_local AS is_local;
                     """,
                     parameters={"actor_id": str(actor_id)},
