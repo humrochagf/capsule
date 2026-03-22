@@ -29,6 +29,7 @@ dependencies = [
   "uvicorn[standard]",
   "wheke",
   "wheke-ladybug",
+  "wheke-sentry",
   "wheke-sqlmodel",
 ]
 

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from wheke import Wheke
 from wheke_ladybug import ladybug_pod
+from wheke_sentry import sentry_pod
 from wheke_sqlmodel import sqlmodel_pod
 
 from .activitypub.pod import activitypub_pod
@@ -15,6 +16,7 @@ def build_wheke(
 ) -> Wheke:
     wheke = Wheke(settings)
 
+    wheke.add_pod(sentry_pod)
     wheke.add_pod(sqlmodel_pod)
     wheke.add_pod(ladybug_pod)
     wheke.add_pod(security_pod)
