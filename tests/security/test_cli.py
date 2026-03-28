@@ -3,11 +3,11 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from capsule.__main__ import build_cli
-from tests.utils import test_env
+from tests.utils import setup_testing_env
 
 
 def test_hashpwd(tmp_path: Path) -> None:
-    with test_env(tmp_path):
+    with setup_testing_env(tmp_path):
         cli = build_cli()
 
     runner = CliRunner()
@@ -18,7 +18,7 @@ def test_hashpwd(tmp_path: Path) -> None:
 
 
 def test_keypair(tmp_path: Path) -> None:
-    with test_env(tmp_path):
+    with setup_testing_env(tmp_path):
         cli = build_cli()
 
     runner = CliRunner()

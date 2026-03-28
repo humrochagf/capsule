@@ -12,7 +12,7 @@ LADYBUG_DB_ECHO_ENV = "CAPSULE__FEATURES__LADYBUG__ECHO_OPERATIONS"
 
 
 @contextmanager
-def test_env(tmp_path: Path) -> Generator:
+def setup_testing_env(tmp_path: Path) -> Generator:
     os.environ[SQLMODEL_DB_ENV] = f"{SQLITE_DRIVER}:///{tmp_path / 'test.db'}"
     os.environ[LADYBUG_DB_ENV] = f"{tmp_path / 'test.lbug'}"
     os.environ[LADYBUG_DB_ECHO_ENV] = "True"

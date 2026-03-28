@@ -14,7 +14,7 @@ from capsule import build_app
 from capsule.__main__ import build_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings
-from tests.utils import ap_actor, test_env
+from tests.utils import ap_actor, setup_testing_env
 
 CAPSULE_USERNAME = "testuser"
 
@@ -40,7 +40,7 @@ def client(capsule_settings: CapsuleSettings) -> Generator[TestClient]:
 def capsule_settings(
     tmp_path: Path, rsa_keypair: tuple[str, str], pwd_and_hash: tuple[str, str]
 ) -> CapsuleSettings:
-    with test_env(tmp_path):
+    with setup_testing_env(tmp_path):
         settings = CapsuleSettings(
             username=CAPSULE_USERNAME,
             password=pwd_and_hash[1],
@@ -107,7 +107,7 @@ def rsa_keypair() -> tuple[str, str]:
 def pwd_and_hash(tmp_path_factory: TempPathFactory) -> tuple[str, str]:
     tmp_path = tmp_path_factory.mktemp("session_data")
 
-    with test_env(tmp_path):
+    with setup_testing_env(tmp_path):
         cli = build_cli()
 
     pwd = secrets.token_urlsafe()
