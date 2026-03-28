@@ -1,4 +1,27 @@
+import os
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
 from uuid import uuid4
+
+from wheke_sqlmodel import SQLITE_DRIVER
+
+SQLMODEL_DB_ENV = "CAPSULE__FEATURES__SQLMODEL__CONNECTION_STRING"
+LADYBUG_DB_ENV = "CAPSULE__FEATURES__LADYBUG__CONNECTION_STRING"
+LADYBUG_DB_ECHO_ENV = "CAPSULE__FEATURES__LADYBUG__ECHO_OPERATIONS"
+
+
+@contextmanager
+def test_env(tmp_path: Path) -> Generator:
+    os.environ[SQLMODEL_DB_ENV] = f"{SQLITE_DRIVER}:///{tmp_path / 'test.db'}"
+    os.environ[LADYBUG_DB_ENV] = f"{tmp_path / 'test.lbug'}"
+    os.environ[LADYBUG_DB_ECHO_ENV] = "True"
+
+    yield
+
+    os.environ.pop(SQLMODEL_DB_ENV, None)
+    os.environ.pop(LADYBUG_DB_ENV, None)
+    os.environ.pop(LADYBUG_DB_ECHO_ENV, None)
 
 
 def ap_create_note(

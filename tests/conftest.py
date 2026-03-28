@@ -7,16 +7,14 @@ from coolname import generate
 from fastapi.testclient import TestClient
 from httpx import BasicAuth
 from pydantic_core import Url
+from pytest import TempPathFactory
 from typer.testing import CliRunner
-from wheke_ladybug import LadybugSettings
-from wheke_sqlmodel import SQLITE_DRIVER, SQLModelSettings
 
 from capsule import build_app
 from capsule.__main__ import build_cli
-from capsule.__main__ import cli as capsule_cli
 from capsule.security.utils import RSAKeyPair, generate_rsa_keypair
 from capsule.settings import CapsuleSettings
-from tests.utils import ap_actor
+from tests.utils import ap_actor, test_env
 
 CAPSULE_USERNAME = "testuser"
 
@@ -42,21 +40,11 @@ def client(capsule_settings: CapsuleSettings) -> Generator[TestClient]:
 def capsule_settings(
     tmp_path: Path, rsa_keypair: tuple[str, str], pwd_and_hash: tuple[str, str]
 ) -> CapsuleSettings:
-    sqlmodel_settings = SQLModelSettings(
-        connection_string=f"{SQLITE_DRIVER}:///{tmp_path / 'test.db'}",
-        echo_operations=True,
-    )
-    ladybug_settings = LadybugSettings(
-        connection_string=f"{tmp_path / 'test.lbug'}",
-    )
-    settings = CapsuleSettings(
-        username=CAPSULE_USERNAME,
-        password=pwd_and_hash[1],
-        features={
-            sqlmodel_settings.__feature_name__: sqlmodel_settings.model_dump(),
-            ladybug_settings.__feature_name__: ladybug_settings.model_dump(),
-        },
-    )
+    with test_env(tmp_path):
+        settings = CapsuleSettings(
+            username=CAPSULE_USERNAME,
+            password=pwd_and_hash[1],
+        )
 
     settings.private_key, settings.public_key = rsa_keypair
 
@@ -116,12 +104,17 @@ def rsa_keypair() -> tuple[str, str]:
 
 
 @pytest.fixture(scope="session")
-def pwd_and_hash() -> tuple[str, str]:
+def pwd_and_hash(tmp_path_factory: TempPathFactory) -> tuple[str, str]:
+    tmp_path = tmp_path_factory.mktemp("session_data")
+
+    with test_env(tmp_path):
+        cli = build_cli()
+
     pwd = secrets.token_urlsafe()
 
     runner = CliRunner()
 
-    result = runner.invoke(capsule_cli, ["security", "hashpwd", pwd])
+    result = runner.invoke(cli, ["security", "hashpwd", pwd])
     assert result.exit_code == 0
 
     return pwd, result.stdout.strip()

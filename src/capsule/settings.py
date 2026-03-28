@@ -40,7 +40,7 @@ class CapsuleSettings(WhekeSettings):
     features: dict = Field(default_factory=default_features)
 
     model_config = SettingsConfigDict(
-        env_prefix="capsule_", env_file=".env", env_file_encoding="utf-8"
+        env_prefix="capsule__", env_file=".env", env_file_encoding="utf-8"
     )
 
     @property
