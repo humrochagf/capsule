@@ -1,20 +1,29 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
-from capsule.__main__ import cli as capsule_cli
+from capsule.__main__ import build_cli
+from tests.utils import test_env
 
 
-def test_hashpwd() -> None:
+def test_hashpwd(tmp_path: Path) -> None:
+    with test_env(tmp_path):
+        cli = build_cli()
+
     runner = CliRunner()
 
-    result = runner.invoke(capsule_cli, ["security", "hashpwd", "test"])
+    result = runner.invoke(cli, ["security", "hashpwd", "test"])
     assert result.exit_code == 0
     assert result.stdout.startswith("$2b$12$")
 
 
-def test_keypair() -> None:
+def test_keypair(tmp_path: Path) -> None:
+    with test_env(tmp_path):
+        cli = build_cli()
+
     runner = CliRunner()
 
-    result = runner.invoke(capsule_cli, ["security", "keypair"])
+    result = runner.invoke(cli, ["security", "keypair"])
     assert result.exit_code == 0
 
     assert "-----BEGIN PRIVATE KEY-----" in result.stdout
