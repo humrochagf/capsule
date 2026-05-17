@@ -1,8 +1,8 @@
 from typing import cast
 
+from ladybug import QueryResult
 from pydantic import HttpUrl
 from pydantic_core import to_jsonable_python
-from real_ladybug import QueryResult
 from wheke_ladybug import LadybugRepository
 
 from capsule.activitypub.models import Actor, ActorAP
