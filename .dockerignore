@@ -17,6 +17,7 @@
 .mypy_cache/
 .venv/
 __pycache__/
+dev/
 dist/
 node_modules/
 venv/
