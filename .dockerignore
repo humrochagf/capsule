@@ -1,5 +1,6 @@
 # Ignore the git directory and associated files
 .git
+.github
 .gitignore
 .gitkeep
 
@@ -15,6 +16,8 @@
 .env
 .hatch/
 .mypy_cache/
+.pytest_cache/
+.ruff_cache/
 .venv/
 __pycache__/
 dev/
